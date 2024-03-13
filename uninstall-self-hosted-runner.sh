@@ -13,9 +13,9 @@ function uninstall_runner() {
     cd $runnerFolder
 
     sudo ./svc.sh stop
-    sudo ./svc.sh uninstall
+    sudo ./svc.sh uninstall || true
 
-    ./config.sh remove --token $GITHUB_TOKEN
+    ./config.sh remove --token $GITHUB_TOKEN || true
 
     cd $HOME
 
