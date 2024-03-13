@@ -12,7 +12,7 @@ function uninstall_runner() {
   find $HOME -maxdepth 1 -type d -iname "$runnerFolderPattern" | while read runnerFolder; do
     cd $runnerFolder
 
-    sudo ./svc.sh stop
+    sudo ./svc.sh stop || true
     sudo ./svc.sh uninstall || true
 
     ./config.sh remove --token $GITHUB_TOKEN || true
