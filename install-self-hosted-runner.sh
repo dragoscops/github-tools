@@ -18,6 +18,7 @@ function install_deps_linux() {
   fi
 
   if test wich rpm > /dev/null; then
+  echo
     # sudo rpm i ...
   fi
 }
