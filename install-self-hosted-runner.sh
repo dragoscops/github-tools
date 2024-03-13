@@ -58,7 +58,10 @@ function install_runner() {
         cd $HOME/$runnerFolder
         tar xzf $runnerTgz -C $HOME/$runnerFolder
 
-        echo ./config.sh --url $GITHUB_REPOSITORY --token $GITHUB_TOKEN
+        ./config.sh --url $GITHUB_REPOSITORY --token $GITHUB_TOKEN
+
+        sudo ./svc.sh install
+        sudo ./svc.sh start
     done
 }
 
