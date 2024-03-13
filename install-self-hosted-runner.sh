@@ -56,7 +56,7 @@ function install_runner() {
 
         mkdir -p $HOME/$runnerFolder
         cd $HOME/$runnerFolder
-        tar xzf $runnerTgz -C $runnerFolder
+        tar xzf $runnerTgz -C $HOME/$runnerFolder
 
         echo ./config.sh --url $GITHUB_REPOSITORY --token $GITHUB_TOKEN
     done
