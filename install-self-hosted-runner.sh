@@ -11,14 +11,14 @@ OS=linux
 uname -a | grep Darwin > /dev/null && OS=darwin
 
 
-function install_deps_linnux() {
+function install_deps_linux() {
   if test which apt-get > /dev/null; then
     sudo apt-get update
     sudo apt-get install -y curl jq build-essential git
   fi
 
   if test wich rpm > /dev/null; then
-    sudo rpm i ...
+    # sudo rpm i ...
   fi
 }
 
