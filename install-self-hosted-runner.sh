@@ -53,7 +53,7 @@ function download_runner_darwin() {
 
 function install_runner() {
     local runnerTgz="/tmp/action-runner.tar.gz"
-    local runnerFolderPattern=${RUNNER_FOLDER_PATTERN:-action-runner-{id}}
+    local runnerFolderPattern=${RUNNER_FOLDER_PATTERN:-"action-runner-{id}"}
     local runnerCount=${RUNNER_COUNT:-2}
 
     for i in $(seq 1 $runnerCount); do
