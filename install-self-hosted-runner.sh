@@ -52,9 +52,9 @@ function install_runner() {
 
     for i in $(seq 1 $runnerCount); do
         local runnerFolder=$(echo $runnerFolderPattern | sed "s/{id}/$i/")
-        mkdir -p $HOME/$runnerFolder
-
         rm -rf $HOME/$runnerFolder
+
+        mkdir -p $HOME/$runnerFolder
         cd $HOME/$runnerFolder
         tar xzf $runnerTgz -C $runnerFolder
 
