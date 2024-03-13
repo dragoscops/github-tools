@@ -14,7 +14,7 @@ function install_deps_linux() {
     sudo apt-get install -y curl jq build-essential git curl
   elif which yum > /dev/null 2>&1; then
     sudo yum update -y
-    sudo yum install -y curl jq git
+    sudo yum install -y curl jq git --allowerasing
   elif which dnf > /dev/null 2>&1; then
     sudo dnf update -y
     sudo dnf install -y curl jq git
@@ -64,10 +64,10 @@ function install_runner() {
         cd $HOME/$runnerFolder
         tar xzf $runnerTgz -C $HOME/$runnerFolder
 
-        echo ./config.sh --unattended --url $GITHUB_REPOSITORY --token $GITHUB_TOKEN --name $runnerName --labels $runnerLabels
+        ./config.sh --unattended --url $GITHUB_REPOSITORY --token $GITHUB_TOKEN --name $runnerName --labels $runnerLabels
 
-        echo sudo ./svc.sh install
-        echo sudo ./svc.sh start
+        sudo ./svc.sh install
+        sudo ./svc.sh start
     done
 }
 
