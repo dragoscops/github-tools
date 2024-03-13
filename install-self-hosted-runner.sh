@@ -3,12 +3,6 @@ if [ ! -z $DEBUG ]; then
     set -ex
 fi
 
-RUNNER_URL="https://github.com/actions/runner/releases/download/v2.314.1/actions-runner-linux-x64-2.314.1.tar.gz"
-RUNNER_SHA="6c726a118bbe02cd32e222f890e1e476567bf299353a96886ba75b423c1137b5"
-
-RUNNER_FOLDER_PATTERN="action-runner-{id}"
-RUNNER_COUNT=2
-
 GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-invalid}
 GITHUB_TOKEN=${GITHUB_TOKEN:-invalid}
 
