@@ -6,19 +6,21 @@ fi
 GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-invalid}
 GITHUB_TOKEN=${GITHUB_TOKEN:-invalid}
 
-
-OS=linux
-uname -a | grep Darwin > /dev/null && OS=darwin
-
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
 function install_deps_linux() {
-  if test which apt-get > /dev/null; then
+  if which apt-get > /dev/null 2>&1; then
     sudo apt-get update
-    sudo apt-get install -y curl jq build-essential git
-  fi
-
-  if test wich rpm > /dev/null; then
-    echo sudo rpm i ...
+    sudo apt-get install -y curl jq build-essential git curl
+  elif which yum > /dev/null 2>&1; then
+    sudo yum update -y
+    sudo yum install -y curl jq git
+  elif which dnf > /dev/null 2>&1; then
+    sudo dnf update -y
+    sudo dnf install -y curl jq git
+  else
+    echo "Unsupported package manager..."
+    exit 254
   fi
 }
 
@@ -49,19 +51,23 @@ function install_runner() {
     local runnerTgz="/tmp/action-runner.tar.gz"
     local runnerFolderPattern=${RUNNER_FOLDER_PATTERN:-"action-runner-{id}"}
     local runnerCount=${RUNNER_COUNT:-2}
+    local runnerNamePattern=${RUNNER_NAME_PATTERN:-"action-runner-{id}"}
+    local runnerLabelsPattern=${RUNNER_LABELS_PATTERN:-"action-runner"}
 
     for i in $(seq 1 $runnerCount); do
         local runnerFolder=$(echo $runnerFolderPattern | sed "s/{id}/$i/")
+        local runnerName=$(echo $runnerNamePattern | sed "s/{id}/$i/")
+        local runnerLabels=$(echo $runnerLabelsPattern | sed "s/{id}/$i/")
         rm -rf $HOME/$runnerFolder
 
         mkdir -p $HOME/$runnerFolder
         cd $HOME/$runnerFolder
         tar xzf $runnerTgz -C $HOME/$runnerFolder
 
-        ./config.sh --url $GITHUB_REPOSITORY --token $GITHUB_TOKEN
+        echo ./config.sh --unattended --url $GITHUB_REPOSITORY --token $GITHUB_TOKEN --name $runnerName --labels $runnerLabels
 
-        sudo ./svc.sh install
-        sudo ./svc.sh start
+        echo sudo ./svc.sh install
+        echo sudo ./svc.sh start
     done
 }
 
