@@ -7,9 +7,11 @@ GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-invalid}
 GITHUB_TOKEN=${GITHUB_TOKEN:-invalid}
 
 function uninstall_runner() {
-  local runnerFolderPattern=${RUNNER_FOLDER_PATTERN:-"action-runner-{id}"}
+  local runnerFolderPattern=${RUNNER_FOLDER_PATTERN:-"action-runner-*"}
 
   find $HOME -maxdepth 1 -type d -iname "$runnerFolderPattern" | while read runnerFolder; do
+    echo "> Uninstalling $runnerFolder"
+    
     cd $runnerFolder
 
     sudo ./svc.sh stop || true
