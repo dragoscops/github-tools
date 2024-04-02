@@ -1,8 +1,8 @@
 # github-tools
 
-## Install Github Runners
+> Please read script's code to understand what it does!!!
 
-> Please read script code to understand what it does!!!
+## Install Github Runners
 
 > Except for `GITHUB_TOKEN` AND `GITHUB_REPOSITORY`, all other variables are optional (for specific configs)
 
@@ -16,7 +16,7 @@ RUNNER_LABELS_PATTERN=github-runner \
 bash ./bin/github-tools/install-self-hosted-runner.sh
 ```
 
-## Uninstall Github Runners
+### Uninstall Github Runners
 
 ```bash
 GITHUB_TOKEN=<TOKEN> \
