@@ -2,6 +2,8 @@
 
 ## Install Github Runners
 
+> Please read script code to understand what it does!!!
+
 > Except for `GITHUB_TOKEN` AND `GITHUB_REPOSITORY`, all other variables are optional (for specific configs)
 
 ```bash
