@@ -6,6 +6,12 @@ fi
 GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-invalid}
 GITHUB_TOKEN=${GITHUB_TOKEN:-invalid}
 
+example="
+DEBUG=1 \
+RUNNER_FOLDER_PATTERN="action-runner-*-performance" \ \
+bash ./uninstall-self-hosted-runner.sh
+"
+
 function uninstall_runner() {
   local runnerFolderPattern=${RUNNER_FOLDER_PATTERN:-"action-runner-{id}"}
 
