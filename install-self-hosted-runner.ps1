@@ -72,12 +72,12 @@ function Install-Runner-Windows {
         Copy-Item -Path "${RunnerPath}\*" -Destination $runnerFolder
 
         Push-Location $runnerFolder
-        Write-Host "Configuring runner..."
-        # & .\config.cmd --unattended --url $GithubRepository --token $GithubToken --name $runnerName --labels $runnerLabels
+        Write-Host "Configuring runner #${i}..."
+        & .\config.cmd --unattended --url $GithubRepository --token $GithubToken --name $runnerName --labels $runnerLabels
 
-        # Write-Host "Installing runner as service..."
-        # & .\svc.cmd install
-        # & .\svc.cmd start
+        Write-Host "Installing runner as service..."
+        & .\svc.cmd install
+        & .\svc.cmd start
         Pop-Location
     }
 }
