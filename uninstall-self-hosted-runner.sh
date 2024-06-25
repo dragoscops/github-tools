@@ -1,4 +1,12 @@
 #! /bin/bash
+
+###############################################################################
+# TODO: refactor script to use arguments instead of env vars
+# DEBUG=1 \
+# RUNNER_FOLDER_PATTERN="action-runner-*-performance" \ \
+# bash ./uninstall-self-hosted-runner.sh
+###############################################################################
+
 if [ ! -z $DEBUG ]; then
     set -ex
 fi
@@ -6,18 +14,12 @@ fi
 GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-invalid}
 GITHUB_TOKEN=${GITHUB_TOKEN:-invalid}
 
-example="
-DEBUG=1 \
-RUNNER_FOLDER_PATTERN="action-runner-*-performance" \ \
-bash ./uninstall-self-hosted-runner.sh
-"
-
 function uninstall_runner() {
   local runnerFolderPattern=${RUNNER_FOLDER_PATTERN:-"action-runner-*"}
 
   find $HOME -maxdepth 1 -type d -iname "$runnerFolderPattern" | while read runnerFolder; do
     echo "> Uninstalling $runnerFolder"
-    
+
     cd $runnerFolder
 
     sudo ./svc.sh stop || true

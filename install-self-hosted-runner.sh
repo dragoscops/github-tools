@@ -1,4 +1,17 @@
 #! /bin/bash
+
+###############################################################################
+# TODO: refactor script to use arguments and not env vars
+# DEBUG=1 \
+# RUNNER_COUNT=5 \
+# RUNNER_FOLDER_PATTERN="action-runner-{id}-performance" \
+# GITHUB_REPOSITORY=##### \
+# GITHUB_TOKEN=##### \
+# RUNNER_NAME_PATTERN="app-dev-runner-performance-{id}" \
+# RUNNER_LABELS_PATTERN="github-runner-app-dev-performance" \
+# bash ./install-self-hosted-runner.sh
+###############################################################################
+
 if [ ! -z $DEBUG ]; then
     set -ex
 fi
@@ -7,17 +20,6 @@ GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-invalid}
 GITHUB_TOKEN=${GITHUB_TOKEN:-invalid}
 
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-
-example="
-DEBUG=1 \
-RUNNER_COUNT=5 \
-RUNNER_FOLDER_PATTERN="action-runner-{id}-performance" \
-GITHUB_REPOSITORY=##### \
-GITHUB_TOKEN=##### \
-RUNNER_NAME_PATTERN="app-dev-runner-performance-{id}" \
-RUNNER_LABELS_PATTERN="github-runner-app-dev-performance" \
-bash ./install-self-hosted-runner.sh
-"
 
 function install_deps_linux() {
   if which apt-get > /dev/null 2>&1; then
