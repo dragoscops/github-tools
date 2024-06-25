@@ -40,7 +40,7 @@ function Install-Dependencies-Windows {
 }
 
 function Download-Runner-Windows {
-    Write-Host "Downloading runner..."
+    Write-Host "Downloading runner template..."
     Invoke-WebRequest -Uri $RunnerDownloadUrl -OutFile $RunnerZipPath
 
     $fileHash = (Get-FileHash -Path $RunnerZipPath -Algorithm SHA256).Hash.ToUpper()
@@ -48,9 +48,15 @@ function Download-Runner-Windows {
         throw "Computed checksum did not match"
     }
 
-    Write-Host "Extracting runner..."
+    Write-Host "Extracting runner template..."
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::ExtractToDirectory($RunnerZipPath, $RunnerPath)
+}
+
+function Remove-Runner-Windows {
+    Write-Host "Removing runner tempalte..."
+    Remove-Item -Recurse -Force $RunnerZipPath -ErrorAction SilentlyContinue
+    Remove-Item -Recurse -Force $RunnerPath -ErrorAction SilentlyContinue
 }
 
 function Install-Runner-Windows {
@@ -88,6 +94,7 @@ if ($GithubToken -eq "invalid") {
 
 Install-Dependencies-Windows
 Download-Runner-Windows
-# Install-Runner-Windows
+Install-Runner-Windows
+Remove-Runner-Windows
 
-# Write-Host "Runner installation and configuration complete."
+Write-Host "Runner installation and configuration complete."
