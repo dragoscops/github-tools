@@ -3,7 +3,12 @@ param(
     [string]$GITHUB_TOKEN = "invalid"
 )
 
-if ($DEBUG) {
+###############################################################################
+# Example to run:
+# .\install-runner.ps1 -GITHUB_REPOSITORY "https://github.com/your/repo" -GITHUB_TOKEN "your_github_token"
+###############################################################################
+
+if ($env:DEBUG) {
     $VerbosePreference = "Continue"
     $DebugPreference = "Continue"
 }
