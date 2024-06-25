@@ -86,7 +86,7 @@ if ($GithubToken -eq "invalid") {
 }
 
 Install-Dependencies-Windows
-# Download-Runner-Windows
+Download-Runner-Windows
 # Install-Runner-Windows
 
 # Write-Host "Runner installation and configuration complete."
