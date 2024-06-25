@@ -69,7 +69,7 @@ function Install-Runner-Windows {
 
         Remove-Item -Recurse -Force $runnerFolder -ErrorAction SilentlyContinue
         New-Item -Path $runnerFolder -ItemType Directory | Out-Null
-        Copy-Item -Path "${RunnerPath}\*" -Destination $runnerFolder
+        Copy-Item -Path "${RunnerPath}\*" -Destination $runnerFolder -Recurse
 
         Push-Location $runnerFolder
         Write-Host "Configuring runner #${i}..."
