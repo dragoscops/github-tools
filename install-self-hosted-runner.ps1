@@ -9,7 +9,8 @@ param(
     [string]$RunnerDownloadSha = "a74dcd1612476eaf4b11c15b3db5a43a4f459c1d3c1807f8148aeb9530d69826"
 )
 
-$RunnerZipPath = "C:\github-actions-runner-installer.zip"
+$RunnerZipPath = "C:\github-actions-runner-template.zip"
+$RunnerPath = "C:\github-actions-runner-template"
 
 ###############################################################################
 # Example to run:
@@ -39,8 +40,6 @@ function Install-Dependencies-Windows {
 }
 
 function Download-Runner-Windows {
-    $RunnerDownloadSha = ${env:RUNNER_SHA} -or "a74dcd1612476eaf4b11c15b3db5a43a4f459c1d3c1807f8148aeb9530d69826"
-
     Write-Host "Downloading runner..."
     Invoke-WebRequest -Uri $RunnerDownloadUrl -OutFile $RunnerZipPath
 
@@ -51,7 +50,7 @@ function Download-Runner-Windows {
 
     Write-Host "Extracting runner..."
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($RunnerZipPath, "C:\actions-runner")
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($RunnerZipPath, $RunnerPath)
 }
 
 function Install-Runner-Windows {
@@ -60,17 +59,19 @@ function Install-Runner-Windows {
         $runnerName = $RunnerNamePattern -replace "{id}", $i
         $runnerLabels = $RunnerLabelsPattern -replace "{id}", $i
 
+        $runnerFolder = "${env:HOMEDRIVE}${env:HOMEPATH}\${runnerFolder}"
+
         Remove-Item -Recurse -Force $runnerFolder -ErrorAction SilentlyContinue
         New-Item -Path $runnerFolder -ItemType Directory | Out-Null
-        Copy-Item -Path "C:\actions-runner\*" -Destination $runnerFolder
+        Copy-Item -Path "${RunnerPath}\*" -Destination $runnerFolder
 
         Push-Location $runnerFolder
         Write-Host "Configuring runner..."
-        & .\config.cmd --unattended --url $GithubRepository --token $GithubToken --name $runnerName --labels $runnerLabels
+        # & .\config.cmd --unattended --url $GithubRepository --token $GithubToken --name $runnerName --labels $runnerLabels
 
-        Write-Host "Installing runner as service..."
-        & .\svc.cmd install
-        & .\svc.cmd start
+        # Write-Host "Installing runner as service..."
+        # & .\svc.cmd install
+        # & .\svc.cmd start
         Pop-Location
     }
 }
