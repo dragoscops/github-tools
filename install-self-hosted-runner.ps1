@@ -78,9 +78,6 @@ function Install-Runner-Windows {
 
         # https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/configuring-the-self-hosted-runner-application-as-a-service?platform=windows
         Start-Service "actions.runner.*"
-        # Write-Host "Installing runner as service..."
-        # & .\svc.cmd install
-        # & .\svc.cmd start
         Pop-Location
     }
 }
@@ -96,9 +93,9 @@ if ($GithubToken -eq "invalid") {
 }
 
 Install-Dependencies-Windows
-# Remove-Runner-Windows
+Remove-Runner-Windows
 Download-Runner-Windows
 Install-Runner-Windows
-# Remove-Runner-Windows
+Remove-Runner-Windows
 
 Write-Host "Runner installation and configuration complete."
