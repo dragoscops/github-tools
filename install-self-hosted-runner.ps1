@@ -75,9 +75,9 @@ function Install-Runner-Windows {
         Write-Host "Configuring runner #${i}..."
         & .\config.cmd --unattended --url $GithubRepository --token $GithubToken --name $runnerName --labels $runnerLabels
 
-        Write-Host "Installing runner as service..."
-        & .\svc.cmd install
-        & .\svc.cmd start
+        # Write-Host "Installing runner as service..."
+        # & .\svc.cmd install
+        # & .\svc.cmd start
         Pop-Location
     }
 }
