@@ -14,10 +14,12 @@ $RunnerPath = "C:\github-actions-runner-template"
 
 ###############################################################################
 # Example to run:
-# .\install-runner.ps1 -GithubRepository "https://github.com/your/repo" -GithubToken "your_GithubToken" `
-#                       -RunnerFolderPath "github-runner-{id}-system-tests" `
-#                       -RunnerNamePattern "github-runner-system-tests-{id}" `
-#                       -RunnerLabelsPattern "github-runner-system-tests"
+# .\install-runner.ps1 `
+#      -GithubRepository "https://github.com/your/repo" `
+#      -GithubToken "your_GithubToken" `
+#      -RunnerFolderPath "github-runner-{id}-local" `
+#      -RunnerNamePattern "github-runner-local-{id}" `
+#      -RunnerLabelsPattern "github-runner-local"
 ###############################################################################
 
 if ($env:DEBUG) {
