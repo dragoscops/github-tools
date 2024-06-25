@@ -75,6 +75,8 @@ function Install-Runner-Windows {
         Write-Host "Configuring runner #${i}..."
         & .\config.cmd --unattended --url $GithubRepository --token $GithubToken --name $runnerName --labels $runnerLabels
 
+        # https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/configuring-the-self-hosted-runner-application-as-a-service?platform=windows
+        Start-Service "actions.runner.*"
         # Write-Host "Installing runner as service..."
         # & .\svc.cmd install
         # & .\svc.cmd start
