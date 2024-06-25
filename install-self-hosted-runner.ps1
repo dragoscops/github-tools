@@ -93,6 +93,7 @@ if ($GithubToken -eq "invalid") {
 }
 
 Install-Dependencies-Windows
+Remove-Runner-Windows
 Download-Runner-Windows
 Install-Runner-Windows
 Remove-Runner-Windows
