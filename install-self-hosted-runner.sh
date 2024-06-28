@@ -50,7 +50,8 @@ function download_runner_linux() {
 
     curl -o $runnerTgz -L "$runnerUrl"
 
-    echo "$runnerSha  $runnerTgz" | shasum -a 256 -c
+    echo "$runnerSha  $runnerTgz" | shasum -a 256 -c \
+      || echo "$runnerSha  $runnerTgz" | sha256sum -c
 }
 
 function download_runner_darwin() {
