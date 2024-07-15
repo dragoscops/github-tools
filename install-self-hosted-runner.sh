@@ -22,7 +22,9 @@ GITHUB_TOKEN=${GITHUB_TOKEN:-invalid}
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
 function install_deps_linux() {
-  source /etc/*-release
+  source /etc/*-release > /dev/null \
+    || ID=$(cat /etc/*-release | egrep "^ID=" | awk -F '"' '{ print $2 }')
+
   case "$ID" in
     amzn)
       sudo yum update -y
