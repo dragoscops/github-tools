@@ -22,19 +22,22 @@ GITHUB_TOKEN=${GITHUB_TOKEN:-invalid}
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
 function install_deps_linux() {
-  if which apt-get > /dev/null 2>&1; then
-    sudo apt-get update
-    sudo apt-get install -y curl jq build-essential git curl
-  elif which yum > /dev/null 2>&1; then
-    sudo yum update -y
-    sudo yum install -y curl jq git --allowerasing
-  elif which dnf > /dev/null 2>&1; then
-    sudo dnf update -y
-    sudo dnf install -y curl jq git
-  else
-    echo "Unsupported package manager..."
-    exit 254
-  fi
+  source /etc/*-release
+  case "$ID" in
+    amzn)
+      sudo yum update -y
+      sudo yum install -y curl dotnet docker jq git --allowerasing
+      ;;
+    debian|ubuntu)
+      sudo apt-get update
+      sudo apt-get install -y curl jq build-essential git curl
+      curl -fsSL https://get.docker.com -o /tmp/get-docker.sh && \
+        sudo bash /tmp/get-docker.sh
+      ;;
+    *)
+      echo "Unsupported distro..."
+      exit 254
+  esac
 }
 
 function install_deps_darwin() {
