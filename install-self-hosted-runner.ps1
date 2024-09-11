@@ -76,7 +76,15 @@ function Install-Runner-Windows {
 
         Push-Location $runnerFolder
         Write-Host "Configuring runner #${i}..."
-        & .\config.cmd --url $GithubRepository --token $GithubToken --name $runnerName --labels $runnerLabels --runasservice
+        & .\config.cmd `
+            --url $GithubRepository `
+            --token $GithubToken `
+            --name $runnerName `
+            --labels $runnerLabels `
+            --runnergroup "Default" `
+            --work "_work" `
+            --runasservice `
+            --replace
 
         # https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/configuring-the-self-hosted-runner-application-as-a-service?platform=windows
         Start-Service "actions.runner.*"
