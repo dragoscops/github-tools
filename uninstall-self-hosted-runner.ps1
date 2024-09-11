@@ -3,14 +3,12 @@
 # Example to run:
 # .\uninstall-self-hosted-runner.ps1 `
 #      -GithubToken "your_GithubToken" `
-#      -RunnerFolderPath "github-runner-{id}-local" `
-#      -RunnerNamePattern "github-runner-local-{id}" `
-#      -RunnerLabelsPattern "github-runner-local"
+#      -RunnerFolderPattern "action-runner-*"s
 ###############################################################################
 
 param(
   [string]$GithubToken = "invalid",
-  [string]$RunnerFolderPattern -or "action-runner-*"
+  [string]$RunnerFolderPattern = "actions-runner-*"
 )
 
 if ($env:DEBUG) {
@@ -19,7 +17,7 @@ if ($env:DEBUG) {
 }
 
 function Uninstall-Runner {
-    $runnerFolders = Get-ChildItem -Path $HOME -Directory -Filter $RunnerFolderPattern
+    $runnerFolders = Get-ChildItem -Path C:/actions-runner -Directory -Filter $RunnerFolderPattern
 
     foreach ($runnerFolder in $runnerFolders) {
         Write-Host "> Uninstalling $($runnerFolder.FullName)"
