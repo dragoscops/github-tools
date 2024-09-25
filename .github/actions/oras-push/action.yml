@@ -1,0 +1,148 @@
+name: oras-push
+description: Push artifacts to JFROG, S3, and ECR repositories using ORAS CLI
+branding:
+  icon: upload
+  color: green
+inputs:
+  to:
+    description: "Destination URI where the artifact will be pushed. Must start with jfrog://, s3://, or ecr://."
+    required: true
+    type: string
+  artifact:
+    description: "Path to the artifact to be pushed."
+    required: true
+    type: string
+  jfrog-url:
+    description: "JFROG Artifactory URL (required if pushing to JFROG)."
+    required: false
+    type: string
+  jfrog-user:
+    description: "JFROG Username (required if pushing to JFROG)."
+    required: false
+    type: string
+  jfrog-pass:
+    description: "JFROG Password or API Key (required if pushing to JFROG)."
+    required: false
+    type: string
+  aws-access-key-id:
+    description: "AWS Access Key ID (required for S3 and ECR)."
+    required: false
+    type: string
+  aws-secret-access-key:
+    description: "AWS Secret Access Key (required for S3 and ECR)."
+    required: false
+    type: string
+  aws-region:
+    description: "AWS Region (required for S3 and ECR)."
+    required: false
+    type: string
+outputs:
+  push-status:
+    description: 'Indicates if the artifact was successfully pushed. "success" or "failure".'
+    value: ${{ steps.push-artifact.outputs.status }}
+runs:
+  using: "composite"
+  steps:
+    - name: Validate Inputs
+      id: validate-inputs
+      shell: bash
+      run: |
+        # Check if 'to' starts with a supported scheme
+        if [[ "${{ inputs.to }}" != jfrog://* && "${{ inputs.to }}" != s3://* && "${{ inputs.to }}" != ecr://* ]]; then
+          echo "Error: 'to' must start with 'jfrog://', 's3://', or 'ecr://'."
+          exit 1
+        fi
+
+        # Extract scheme
+        SCHEME=$(echo "${{ inputs.to }}" | awk -F:// '{print $1}')
+
+        echo "scheme=${SCHEME}" >> $GITHUB_OUTPUT
+
+        # Validate required inputs based on scheme
+        case "${SCHEME}" in
+          jfrog)
+            if [[ -z "${{ inputs.jfrog-url }}" || -z "${{ inputs.jfrog-user }}" || -z "${{ inputs.jfrog-pass }}" ]]; then
+              echo "Error: 'jfrog-url', 'jfrog-user', and 'jfrog-pass' are required for JFROG push."
+              exit 1
+            fi
+            ;;
+          s3|ecr)
+            if [[ -z "${{ inputs.aws-access-key-id }}" || -z "${{ inputs.aws-secret-access-key }}" || -z "${{ inputs.aws-region }}" ]]; then
+              echo "Error: 'aws-access-key-id', 'aws-secret-access-key', and 'aws-region' are required for S3 and ECR push."
+              exit 1
+            fi
+            ;;
+          *)
+            echo "Error: Unsupported scheme '${SCHEME}'."
+            exit 1
+            ;;
+        esac
+
+    - name: Configure Authentication
+      id: configure-auth
+      if: steps.validate-inputs.outputs.scheme == 'jfrog'
+      shell: bash
+      run: |
+        # JFROG Authentication
+        export ORAS_EXPERIMENTAL=true
+        export ORAS_REGISTRY="${{ inputs.to }}"
+        export ORAS_USERNAME="${{ inputs.jfrog-user }}"
+        export ORAS_PASSWORD="${{ inputs.jfrog-pass }}"
+
+    - name: Configure AWS Credentials for S3 and ECR
+      id: configure-aws
+      if: steps.validate-inputs.outputs.scheme == 's3' || steps.validate-inputs.outputs.scheme == 'ecr'
+      shell: bash
+      run: |
+        # Export AWS Credentials
+        export AWS_ACCESS_KEY_ID="${{ inputs.aws-access-key-id }}"
+        export AWS_SECRET_ACCESS_KEY="${{ inputs.aws-secret-access-key }}"
+        export AWS_REGION="${{ inputs.aws-region }}"
+
+        # For ECR, authenticate Docker to the ECR registry
+        if [[ "${{ steps.validate-inputs.outputs.scheme }}" == "ecr" ]]; then
+          aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "$(echo "${{ inputs.to }}" | awk -F:// '{print $2}')"
+        fi
+
+    - name: Push Artifact
+      id: push-artifact
+      shell: bash
+      run: |
+        SCHEME=${{ steps.validate-inputs.outputs.scheme }}
+        DESTINATION=${{ inputs.to }}
+        ARTIFACT=${{ inputs.artifact }}
+
+        echo "Pushing artifact '${ARTIFACT}' to '${DESTINATION}' using scheme '${SCHEME}'..."
+
+        case "${SCHEME}" in
+          jfrog)
+            ORAS push "${DESTINATION}" "${ARTIFACT}" --username "${ORAS_USERNAME}" --password "${ORAS_PASSWORD}"
+            ;;
+          s3)
+            ORAS push "${DESTINATION}" "${ARTIFACT}"
+            ;;
+          ecr)
+            ORAS push "${DESTINATION}" "${ARTIFACT}"
+            ;;
+          *)
+            echo "Error: Unsupported scheme '${SCHEME}'."
+            exit 1
+            ;;
+        esac
+
+        if [[ $? -eq 0 ]]; then
+          echo "push-status=success" >> $GITHUB_OUTPUT
+        else
+          echo "push-status=failure" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+
+    - name: Cleanup Authentication Variables
+      if: always()
+      shell: bash
+      run: |
+        unset ORAS_USERNAME
+        unset ORAS_PASSWORD
+        unset AWS_ACCESS_KEY_ID
+        unset AWS_SECRET_ACCESS_KEY
+        unset AWS_REGION
