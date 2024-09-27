@@ -1,0 +1,61 @@
+name: "Create .npmrc"
+description: "Create or update a .npmrc file based on the given inputs."
+
+inputs:
+  content:
+    description: "The full content of the .npmrc file."
+    required: false
+  records:
+    description: |
+      An array of token configs, in JSON format, to be written into .npmrc file.
+      A token config must contain the keys: username, token, scopes, registry.
+    required: false
+  reset:
+    description: "Ignore all previous content of .npmrc and write new settings."
+    required: false
+    default: false
+
+runs:
+  using: "composite"
+  steps:
+    # Step 1: Use `inputs.content` to write the full .npmrc file if provided.
+    - name: Write full .npmrc from content input
+      if: ${{ inputs.content }}
+      shell: bash
+      run: |
+        echo '${{ inputs.content }}' > .npmrc
+        echo ".npmrc file created with provided content."
+
+    # Step 2: Use `inputs.records` to write the .npmrc file based on individual token records.
+    - name: Write .npmrc from records input
+      if: ${{ ! inputs.content && inputs.records }}
+      shell: bash
+      run: |
+        # Check if reset flag is set to true.
+        if [[ "${{ inputs.reset }}" == "true" ]]; then
+          echo "" > .npmrc
+          echo "Resetting .npmrc content as reset flag is set."
+        fi
+
+        # Parse and write the records from JSON input.
+        echo '${{ inputs.records }}' | jq -r '.[] | "\(.scopes | join(\" \")):registry=\(.registry)\n//\(.registry | sub("^https?://"; "")):_authToken=\(.token)\nemail=\(.username)"' >> .npmrc
+        echo ".npmrc file updated with records from input."
+
+    # Step 3: Validation to ensure .npmrc file exists.
+    - name: Validate .npmrc file existence
+      shell: bash
+      run: |
+        if [[ ! -f .npmrc ]]; then
+          echo "Error: .npmrc file was not created."
+          exit 1
+        else
+          echo ".npmrc file creation succeeded."
+        fi
+
+    # Optional: Display the contents of the .npmrc file (for debugging purposes).
+    - name: Display .npmrc content
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        echo "Contents of the created .npmrc file:"
+        cat .npmrc
