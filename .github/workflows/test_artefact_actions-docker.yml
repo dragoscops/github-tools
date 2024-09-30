@@ -11,34 +11,38 @@ on:
 jobs:
   test-artefact-actions:
     runs-on: ubuntu-latest
-    services:
-      registry:
-        image: registry:2
-        env:
-          REGISTRY_AUTH: htpasswd
-          REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
-          REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
-        options: >-
-          --health-cmd="wget --no-verbose --tries=1 --spider http://localhost:5000/v2/ || exit 1"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-        ports:
-          - 5000:5000
-        volumes:
-          - /tmp/registry/auth:/auth
-      htpasswd:
-        image: httpd:2.4-alpine
-        options: >-
-          --health-cmd="htpasswd -Bbn testuser testpassword > /auth/htpasswd"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-        volumes:
-          - /tmp/registry/auth:/auth
+    # services:
+    #   registry:
+    #     image: registry:2
+    #     env:
+    #       REGISTRY_AUTH: htpasswd
+    #       REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
+    #       REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+    #     options: >-
+    #       --health-cmd="wget --no-verbose --tries=1 --spider http://localhost:5000/v2/ || exit 1"
+    #       --health-interval=5s
+    #       --health-timeout=5s
+    #       --health-retries=20
+    #     ports:
+    #       - 5000:5000
+    #     volumes:
+    #       - /tmp/registry/auth:/auth
+    #   htpasswd:
+    #     image: httpd:2.4-alpine
+    #     options: >-
+    #       --health-cmd="htpasswd -Bbn testuser testpassword > /auth/htpasswd"
+    #       --health-interval=5s
+    #       --health-timeout=5s
+    #       --health-retries=20
+    #     volumes:
+    #       - /tmp/registry/auth:/auth
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+
+      - name: Test Docker Version
+        run: |
+          docker --version
 
       # - name: Set up MinIO Client (mc)
       #   run: |
