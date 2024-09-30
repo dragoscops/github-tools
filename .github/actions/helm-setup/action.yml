@@ -30,7 +30,7 @@ runs:
       run: |
         curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-        helm plugin install https://github.com/chartmuseum/helm-push
+        helm plugin install https://github.com/chartmuseum/helm-push || true
 
         echo "helm_installed=1" >> $GITHUB_OUTPUT
 
