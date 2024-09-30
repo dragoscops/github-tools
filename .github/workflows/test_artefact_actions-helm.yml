@@ -49,7 +49,7 @@ jobs:
       #     - /tmp/registry/auth:/auth
 
       chartmuseum:
-        image: chartmuseum/chartmuseum:latest
+        image: ghcr.io/helm/chartmuseum:latest
         env:
           BASIC_AUTH_USER: testuser
           BASIC_AUTH_PASS: testpassword
