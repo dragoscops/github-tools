@@ -4,40 +4,39 @@ branding:
   icon: upload
   color: green
 inputs:
-  to:
-    description: "Destination URI where the artifact will be pushed. Must start with oci-jfrog://, s3://, or oci-ecr://."
+  dest:
+    description: |
+      Destination URI where the artifact will be pushed.
+      docker:// => docker push
+      helm:// => helm push
+      jfrog:// => curl - push to jfrog file artifactory
+      oci:// => oras push
+      s3:// => aws s3 cp
     required: true
+  service:
+    description: |
+      Service to push artifacts to
+      - aws =>
+      - jfrog =>
   artifact:
     description: "Path to the artifact to be pushed."
     required: true
   version:
     description: "Version of the artifact to be pushed."
     required: true
-  jfrog-user:
-    description: "JFROG Username (required if pushing to JFROG)."
+  username:
+    description: "Username for the service authentication."
     required: false
-  jfrog-pass:
-    description: "JFROG Password or API Key (required if pushing to JFROG)."
+  password:
+    description: "Password/token for the service authentication."
     required: false
-  aws-access-key-id:
-    description: "AWS Access Key ID (required for S3 and ECR)."
+  args:
+    description: "Additional arguments for the service command"
     required: false
-  aws-secret-access-key:
-    description: "AWS Secret Access Key (required for S3 and ECR)."
-    required: false
-  aws-region:
-    description: "AWS Region (required for S3)."
-    required: false
-  no-aws-auth:
-    description: "Skip AWS authentication (for S3 and ECR)"
-    required: false
-  oras-args:
-    description: "Additional arguments for 'oras'"
-    required: false
-outputs:
-  push-status:
-    description: 'Indicates if the artifact was successfully pushed. "success" or "failure".'
-    value: ${{ steps.push-artifact.outputs.status }}
+# outputs:
+#   push-status:
+#     description: 'Indicates if the artifact was successfully pushed. "success" or "failure".'
+#     value: ${{ steps.push-artifact.outputs.status }}
 runs:
   using: "composite"
   steps:
@@ -81,142 +80,142 @@ runs:
         echo "destination=${destination}"
         echo "destination=${destination}" >> $GITHUB_OUTPUT
 
-    - name: Validate Inputs (aws)
-      if: ${{ ! inputs.no-aws-auth && (endsWith(steps.detect-values.outputs.scheme, 'ecr') || steps.detect-values.outputs.scheme == 's3') }}
-      shell: bash
-      run: |
-        if [[ -z "${{ inputs.aws-access-key-id }}" || -z "${{ inputs.aws-secret-access-key }}" || -z "${{ inputs.aws-region }}" ]]; then
-          echo "Error: 'aws-access-key-id', 'aws-secret-access-key', and 'aws-region' are required for S3 and ECR push."
-          exit 1
-        fi
-
-    - name: Validate Inputs (jfrog)
-      if: ${{ contains(steps.detect-values.outputs.scheme, 'jfrog') || steps.detect-values.outputs.scheme == 'helm' || steps.detect-values.outputs.scheme == 'docker' }}
-      shell: bash
-      run: |
-        if [[ -z "${{ inputs.jfrog-user }}" || -z "${{ inputs.jfrog-pass }}" ]]; then
-          echo "Error: 'jfrog-user', and 'jfrog-pass' are required for JFROG push."
-          exit 1
-        fi
-
-    - name: Configure AWS Credentials for S3 and ECR
-      id: configure-aws
-      if: ${{ ! inputs.no-aws-auth &&
-        ( steps.detect-values.outputs.scheme == 's3' ||
-        endsWith(steps.detect-values.outputs.scheme, '-ecr') ) }}
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ inputs.aws-access-key-id }}
-        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
-        aws-region: ${{ inputs.aws-region }}
-
-    - name: Docker Authenticate (standard)
-      if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
-      shell: bash
-      run: |
-        docker login -u ${{ inputs.jfrog-user }} -p ${{ inputs.jfrog-pass }} ${{ inputs.jfrog-url }}
-
-    - name: Docker Authenticate (aws)
-      if: ${{ steps.detect-values.outputs.scheme == 'docker-ecr' }}
-      shell: bash
-      run: |
-        destination="${{ steps.detect-values.outputs.destination }}"
-        region=$(echo "$destination" | awk -F'.' '{print $4}')
-        domain=$(echo "$destination" | awk -F'/' '{print $1}')
-        aws ecr get-login-password --region "$region" \
-          | docker login --username AWS --password-stdin "$domain"
-
-    - name: Docker push
-      if: ${{ startsWith(steps.detect-values.outputs.scheme, 'docker') }}
-      shell: bash
-      run: |
-        docker push ${{ steps.detect-values.outputs.destination }}:${{ inputs.version }}
-        docker push ${{ steps.detect-values.outputs.destination }}:latest || true
-
-    - name: Push Artifact (helm)
-      if: ${{ steps.detect-values.outputs.scheme == 'helm' }}
-      shell: bash
-      run: |
-        helm registry login -u ${{ inputs.jfrog-user }} -p ${{ inputs.jfrog-pass }} \
-          ${{ steps.detect-values.outputs.destination }}
-
-        helm push ${{ inputs.artifact }} "oci://${{ steps.detect-values.outputs.destination }}"
-
-    - name: Push Artifact (jfrog)
-      if: ${{ steps.detect-values.outputs.scheme == 'jfrog' }}
-      env:
-        ORAS_EXPERIMENTAL: "true"
-      shell: bash
-      run: |
-        artifact_path="${{ inputs.artifact }}"
-        artifact_name=$(basename "$artifact_path")
-
-        checksum_path="$artifact_path.sha256"
-        checksum_name=$(basename "$checksum_path")
-        sha256sum "$artifact_path" | awk '{print $1}' > $checksum_path
-
-        echo "Uploading artifact: $artifact_name"
-        curl -SL -u "${{ inputs.jfrog-user }}:${{ inputs.jfrog-pass }}" \
-          -T "$artifact_path" \
-          "https://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artifact_name"
-
-        echo "Uploading checksum: $checksum_name"
-        curl -SL -u "${{ inputs.jfrog-user }}:${{ inputs.jfrog-pass }}" \
-          -T "$checksum_path" \
-          "https://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$checksum_name"
-
-    - name: Push Artifact (s3)
-      if: ${{ steps.detect-values.outputs.scheme == 's3' }}
-      shell: bash
-      run: |
-        set -e
-        artifact_path="${{ inputs.artifact }}"
-        artifact_name=$(basename "$artifact_path")
-        aws s3 cp \
-          "$artifact_path" \
-          "s3://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artifact_name"
-
-    - name: Oras Authenticate (oci:ecr)
-      if: ${{ steps.detect-values.outputs.scheme == 'oci-ecr' }}
-      env:
-        ORAS_EXPERIMENTAL: "true"
-      shell: bash
-      run: |
-        destination="${{ steps.detect-values.outputs.destination }}"
-        region=$(echo "$destination" | awk -F'.' '{print $4}')
-        domain=$(echo "$destination" | awk -F'/' '{print $1}')
-        aws ecr get-login-password --region "$region" \
-          | oras login --username AWS --password-stdin "$domain"
-
-    - name: Oras Authenticate (oci:jfrog)
-      if: ${{ steps.detect-values.outputs.scheme == 'oci-jfrog' }}
-      env:
-        ORAS_EXPERIMENTAL: "true"
-      shell: bash
-      run: |
-        destination="${{ steps.detect-values.outputs.destination }}"
-        destination=$(echo $destination | awk -F'/' '{print $1}')
-        oras login "$destination" \
-          --username "${{ inputs.jfrog-user }}" \
-          --password "${{ inputs.jfrog-pass }}"
-
-    - name: Push Artifact (oci)
-      if: ${{ startsWith(steps.detect-values.outputs.scheme, 'oci-') }}
-      env:
-        ORAS_EXPERIMENTAL: "true"
-      shell: bash
-      run: |
-        oras push \
-          ${{ steps.detect-values.outputs.destination }}:${{ inputs.version }} \
-          ${{ inputs.oras-args || '' }} \
-          "${{ inputs.artifact }}"
-
-    - name: Cleanup Authentication Variables
-      if: always()
-      shell: bash
-      run: |
-        unset ORAS_USERNAME
-        unset ORAS_PASSWORD
-        unset AWS_ACCESS_KEY_ID
-        unset AWS_SECRET_ACCESS_KEY
-        unset AWS_REGION
+    # - name: Validate Inputs (aws)
+    #   if: ${{ ! inputs.no-aws-auth && (endsWith(steps.detect-values.outputs.scheme, 'ecr') || steps.detect-values.outputs.scheme == 's3') }}
+    #   shell: bash
+    #   run: |
+    #     if [[ -z "${{ inputs.aws-access-key-id }}" || -z "${{ inputs.aws-secret-access-key }}" || -z "${{ inputs.aws-region }}" ]]; then
+    #       echo "Error: 'aws-access-key-id', 'aws-secret-access-key', and 'aws-region' are required for S3 and ECR push."
+    #       exit 1
+    #     fi
+    #
+    # - name: Validate Inputs (jfrog)
+    #   if: ${{ contains(steps.detect-values.outputs.scheme, 'jfrog') || steps.detect-values.outputs.scheme == 'helm' || steps.detect-values.outputs.scheme == 'docker' }}
+    #   shell: bash
+    #   run: |
+    #     if [[ -z "${{ inputs.jfrog-user }}" || -z "${{ inputs.jfrog-pass }}" ]]; then
+    #       echo "Error: 'jfrog-user', and 'jfrog-pass' are required for JFROG push."
+    #       exit 1
+    #     fi
+    #
+    # - name: Configure AWS Credentials for S3 and ECR
+    #   id: configure-aws
+    #   if: ${{ ! inputs.no-aws-auth &&
+    #     ( steps.detect-values.outputs.scheme == 's3' ||
+    #     endsWith(steps.detect-values.outputs.scheme, '-ecr') ) }}
+    #   uses: aws-actions/configure-aws-credentials@v2
+    #   with:
+    #     aws-access-key-id: ${{ inputs.aws-access-key-id }}
+    #     aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+    #     aws-region: ${{ inputs.aws-region }}
+    #
+    # - name: Docker Authenticate (standard)
+    #   if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
+    #   shell: bash
+    #   run: |
+    #     docker login -u ${{ inputs.jfrog-user }} -p ${{ inputs.jfrog-pass }} ${{ inputs.jfrog-url }}
+    #
+    # - name: Docker Authenticate (aws)
+    #   if: ${{ steps.detect-values.outputs.scheme == 'docker-ecr' }}
+    #   shell: bash
+    #   run: |
+    #     destination="${{ steps.detect-values.outputs.destination }}"
+    #     region=$(echo "$destination" | awk -F'.' '{print $4}')
+    #     domain=$(echo "$destination" | awk -F'/' '{print $1}')
+    #     aws ecr get-login-password --region "$region" \
+    #       | docker login --username AWS --password-stdin "$domain"
+    #
+    # - name: Docker push
+    #   if: ${{ startsWith(steps.detect-values.outputs.scheme, 'docker') }}
+    #   shell: bash
+    #   run: |
+    #     docker push ${{ steps.detect-values.outputs.destination }}:${{ inputs.version }}
+    #     docker push ${{ steps.detect-values.outputs.destination }}:latest || true
+    #
+    # - name: Push Artifact (helm)
+    #   if: ${{ steps.detect-values.outputs.scheme == 'helm' }}
+    #   shell: bash
+    #   run: |
+    #     helm registry login -u ${{ inputs.jfrog-user }} -p ${{ inputs.jfrog-pass }} \
+    #       ${{ steps.detect-values.outputs.destination }}
+    #
+    #     helm push ${{ inputs.artifact }} "oci://${{ steps.detect-values.outputs.destination }}"
+    #
+    # - name: Push Artifact (jfrog)
+    #   if: ${{ steps.detect-values.outputs.scheme == 'jfrog' }}
+    #   env:
+    #     ORAS_EXPERIMENTAL: "true"
+    #   shell: bash
+    #   run: |
+    #     artifact_path="${{ inputs.artifact }}"
+    #     artifact_name=$(basename "$artifact_path")
+    #
+    #     checksum_path="$artifact_path.sha256"
+    #     checksum_name=$(basename "$checksum_path")
+    #     sha256sum "$artifact_path" | awk '{print $1}' > $checksum_path
+    #
+    #     echo "Uploading artifact: $artifact_name"
+    #     curl -SL -u "${{ inputs.jfrog-user }}:${{ inputs.jfrog-pass }}" \
+    #       -T "$artifact_path" \
+    #       "https://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artifact_name"
+    #
+    #     echo "Uploading checksum: $checksum_name"
+    #     curl -SL -u "${{ inputs.jfrog-user }}:${{ inputs.jfrog-pass }}" \
+    #       -T "$checksum_path" \
+    #       "https://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$checksum_name"
+    #
+    # - name: Push Artifact (s3)
+    #   if: ${{ steps.detect-values.outputs.scheme == 's3' }}
+    #   shell: bash
+    #   run: |
+    #     set -e
+    #     artifact_path="${{ inputs.artifact }}"
+    #     artifact_name=$(basename "$artifact_path")
+    #     aws s3 cp \
+    #       "$artifact_path" \
+    #       "s3://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artifact_name"
+    #
+    # - name: Oras Authenticate (oci:ecr)
+    #   if: ${{ steps.detect-values.outputs.scheme == 'oci-ecr' }}
+    #   env:
+    #     ORAS_EXPERIMENTAL: "true"
+    #   shell: bash
+    #   run: |
+    #     destination="${{ steps.detect-values.outputs.destination }}"
+    #     region=$(echo "$destination" | awk -F'.' '{print $4}')
+    #     domain=$(echo "$destination" | awk -F'/' '{print $1}')
+    #     aws ecr get-login-password --region "$region" \
+    #       | oras login --username AWS --password-stdin "$domain"
+    #
+    # - name: Oras Authenticate (oci:jfrog)
+    #   if: ${{ steps.detect-values.outputs.scheme == 'oci-jfrog' }}
+    #   env:
+    #     ORAS_EXPERIMENTAL: "true"
+    #   shell: bash
+    #   run: |
+    #     destination="${{ steps.detect-values.outputs.destination }}"
+    #     destination=$(echo $destination | awk -F'/' '{print $1}')
+    #     oras login "$destination" \
+    #       --username "${{ inputs.jfrog-user }}" \
+    #       --password "${{ inputs.jfrog-pass }}"
+    #
+    # - name: Push Artifact (oci)
+    #   if: ${{ startsWith(steps.detect-values.outputs.scheme, 'oci-') }}
+    #   env:
+    #     ORAS_EXPERIMENTAL: "true"
+    #   shell: bash
+    #   run: |
+    #     oras push \
+    #       ${{ steps.detect-values.outputs.destination }}:${{ inputs.version }} \
+    #       ${{ inputs.oras-args || '' }} \
+    #       "${{ inputs.artifact }}"
+    #
+    # - name: Cleanup Authentication Variables
+    #   if: always()
+    #   shell: bash
+    #   run: |
+    #     unset ORAS_USERNAME
+    #     unset ORAS_PASSWORD
+    #     unset AWS_ACCESS_KEY_ID
+    #     unset AWS_SECRET_ACCESS_KEY
+    #     unset AWS_REGION
