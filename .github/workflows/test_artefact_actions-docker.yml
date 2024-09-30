@@ -55,8 +55,9 @@ jobs:
       - name: Test Docker Push to ${{ matrix.provider || 'Local' }} Registry
         uses: ./.github/actions/artefact-push
         with:
-          to: docker://${{ matrix.endpoint }}/alpine
+          to: docker://${{ matrix.endpoint }}
           provider: ${{ matrix.provider }}
+          artifact: alpine
           version: latest
           username: ${{ matrix.username }}
           password: ${{ matrix.password }}

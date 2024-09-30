@@ -95,7 +95,7 @@ runs:
     - name: Push to Docker Registry
       shell: bash
       run: |
-        docker push ${{ steps.detect-values.outputs.destination }}/${{ inputs.artifact}}:${{ inputs.version }}
+        docker push ${{ steps.detect-values.outputs.destination }}/${{ inputs.artifact }}:${{ inputs.version }}
 
     # - name: Validate Inputs (aws)
     #   if: ${{ ! inputs.no-aws-auth && (endsWith(steps.detect-values.outputs.scheme, 'ecr') || steps.detect-values.outputs.scheme == 's3') }}
