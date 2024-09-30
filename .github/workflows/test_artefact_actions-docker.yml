@@ -14,9 +14,13 @@ jobs:
     steps:
       - name: Set Docker Registry User
         run: |
+          sudo apt-get update && sudo apt-get install -y apache2-utils
+
           htpasswd -Bbn testuser testpass > .github/registry/auth/htpasswd
 
   test-artefact-actions:
+    needs:
+      - setup-registry-credentials
     runs-on: ubuntu-latest
     services:
       registry:
