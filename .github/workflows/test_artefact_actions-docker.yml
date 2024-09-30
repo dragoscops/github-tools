@@ -61,3 +61,7 @@ jobs:
           version: latest
           username: ${{ matrix.username }}
           password: ${{ matrix.password }}
+
+      - name: Test Pushed Docker Image
+        run: |
+          docker run --rm ${{ matrix.endpoint}}/alpine:latest sh -c "date"
