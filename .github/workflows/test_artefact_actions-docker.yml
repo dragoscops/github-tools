@@ -3,10 +3,10 @@ name: Test Artefact Actions (Docker)
 on:
   workflow_dispatch:
   workflow_call:
-  # push:
-  #   branches:
-  #     - main
-  # pull_request:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   setup-registry-credentials:
