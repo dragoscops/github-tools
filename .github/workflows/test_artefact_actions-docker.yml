@@ -42,6 +42,7 @@ jobs:
 
       - name: Start Docker Registry
         run: |
+          sleep 20
           docker ps -a
           # cd test/registry && docker compose up -d
 
