@@ -72,7 +72,7 @@ jobs:
           docker pull alpine:latest
           docker tag alpine:latest localhost:5000/alpine:latest
 
-      - name: Test Docker Push to ${{ matrix.provider || 'Local' }} Registry
+      - name: Test Docker Push to ${{ matrix.registry }} with ${{ matrix.options || 'no' }} options
         uses: ./.github/actions/artefact-push
         with:
           to: docker://${{ matrix.registry }}
