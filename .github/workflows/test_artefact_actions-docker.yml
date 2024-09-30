@@ -16,6 +16,7 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y apache2-utils
 
+          mkdir -p .github/registry/auth
           htpasswd -Bbn testuser testpass > .github/registry/auth/htpasswd
 
   test-artefact-actions:
