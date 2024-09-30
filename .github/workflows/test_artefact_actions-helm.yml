@@ -59,11 +59,11 @@ jobs:
           - 8080:8080
         volumes:
           - /tmp/charts:/charts
-        options: >-
-          --health-cmd="if ! command -v curl; then apk add curl; fi; curl -f http://localhost:8080/health || exit 1"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
+        # options: >-
+        #   --health-cmd="if ! command -v curl; then apk add curl; fi; curl -f http://localhost:8080/health || exit 1"
+        #   --health-interval=5s
+        #   --health-timeout=5s
+        #   --health-retries=20
 
     steps:
       - name: Checkout Repository
@@ -71,6 +71,14 @@ jobs:
 
       - name: Install Helm
         uses: dragoscirjan/github-tools/.github/actions/helm-setup@main
+
+      - name: Wait for Chartmuseum
+        run: |
+          while [[ 1 -eq 1 ]]; do
+            if curl -u 'testuser:testpassword' http://localhost:8080/health; then
+              break
+            fi
+          done
 
       - name: Create Minimal Helm Chart
         run: |
