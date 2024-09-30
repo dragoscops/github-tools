@@ -21,7 +21,7 @@ jobs:
             options: |
               {
                 "docker_login_action": {
-                  "width": {
+                  "with": {
                     "registry": "localhost:5000",
                     "username": "testuser",
                     "password": "testpassword"
