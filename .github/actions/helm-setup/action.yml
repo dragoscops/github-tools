@@ -1,8 +1,8 @@
 name: helm-setup
-description: Setup Helm CLI on Linux GitHub Actions Runners
+description: Setup Helm on Linux GitHub Actions Runners
 inputs:
   force:
-    description: Force installation or upgrade of helm even if it is already installed
+    description: Force installation/upgrade of Helm
     required: false
 outputs:
   helm-installed:
@@ -23,7 +23,7 @@ runs:
 
     - name: Setup Helm
       id: helm-setup
-      if: ${{ steps.helm-test.outputs.helm_installed == "1" || inputs.force }}
+      if: ${{ steps.helm-test.outputs.helm_installed == '1' || inputs.force }}
       shell: bash
       run: |
         curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
@@ -34,7 +34,7 @@ runs:
 
     - name: Test Helm
       id: helm-install
-      if: ${{ steps.helm-test.outputs.helm_installed == "1" || steps.helm-setup.outputs.helm_installed == "1" }}
+      if: ${{ steps.helm-test.outputs.helm_installed == '1' || steps.helm-setup.outputs.helm_installed == '1' }}
       shell: bash
       run: |
         echo "helm_installed=1" >> $GITHUB_OUTPUT
