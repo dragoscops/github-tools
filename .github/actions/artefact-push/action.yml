@@ -84,8 +84,12 @@ runs:
         echo "destination=${destination}"
         echo "destination=${destination}" >> $GITHUB_OUTPUT
 
+    #
+    # Handling Docker
+    #
+
     - name: Login to Docker Registry
-      if: ${{ steps.detect-values.outputs.scheme == 'docker' && ! inputs.provider && inputs.username && inputs.password }}
+      if: ${{ steps.detect-values.outputs.scheme == 'docker' && inputs.username && inputs.password }}
       uses: docker/login-action@v3
       with:
         registry: ${{ steps.detect-values.outputs.destination }}
@@ -93,12 +97,37 @@ runs:
         password: ${{ inputs.password }}
       env: ${{ inputs.options && inputs.options != '' && fromJSON(inputs.options).env || {} }}
 
+    - name: Override docker/login-action@v3 arguments
+      id: login-action
+      if: ${{ steps.detect-values.outputs.scheme == 'docker' && ! inputs.username && ! inputs.password }}
+      shell: bash
+      run: |
+        options='${{ inputs.options }}'
+
+        # Check if options is empty
+        if [ -n "$options" ]; then
+          echo "$options" | jq '.' >/dev/null 2>&1
+          if [ $? -eq 0 ]; then
+            options_with=$(echo "$options" | jq -c '.docker_login_action.with // {}')
+            options_env=$(echo "$options" | jq -c '.docker_login_action.env // {}')
+          else
+            options_with="{}"
+            options_env="{}"
+          fi
+        else
+          options_with="{}"
+          options_env="{}"
+        fi
+
+        echo "with=$with" >> $GITHUB_OUTPUT
+        echo "env=$env" >> $GITHUB_OUTPUT
+
+
     - name: Login to Docker Registry
-      if: ${{ steps.detect-values.outputs.scheme == 'docker' && ! inputs.provider && ! inputs.username && ! inputs.password }}
+      if: ${{ steps.detect-values.outputs.scheme == 'docker' && ! inputs.username && ! inputs.password }}
       uses: docker/login-action@v3
-      with:
-        registry: ${{ steps.detect-values.outputs.destination }}
-      env: ${{ inputs.options && inputs.options != '' && fromJSON(inputs.options).env || {} }}
+      with: ${{ fromJSON(steps.login-action.outputs.with) }}
+      env: ${{ fromJSON(steps.login-action.outputs.env) }}
 
     - name: Push to Docker Registry
       shell: bash

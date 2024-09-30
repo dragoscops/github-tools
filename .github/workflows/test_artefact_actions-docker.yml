@@ -17,7 +17,17 @@ jobs:
           - registry: localhost:5000
             username: testuser
             password: testpassword
-            provider: ''
+          - registry: localhost:5000
+            options: |
+              {
+                "docker_login_action": {
+                  "width": {
+                    "registry": "localhost:5000",
+                    "username": "testuser",
+                    "password": "testpassword"
+                  }
+                }
+              }
           # TODO: setup a ghcr.io test account
           # - registry: ghcr.io
           #   username: testuser
@@ -71,6 +81,7 @@ jobs:
           version: latest
           username: ${{ matrix.username }}
           password: ${{ matrix.password }}
+          options: ${{ matrix.options || '' }}
 
       - name: Test Pushed Docker Image
         run: |
