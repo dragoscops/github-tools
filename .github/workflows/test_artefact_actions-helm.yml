@@ -68,12 +68,20 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Install Helm
-        uses: dragoscirjan/github-tools/.github/actions/helm-setup@main
+      - name: Create Minimal Helm Chart
+        run: |
+          mkdir my-chart
+          cat <<EOF > my-chart/Chart.yaml
+          apiVersion: v2
+          name: my-chart
+          version: ${{ inputs.version }}
+          EOF
+          mkdir my-chart/templates
+          touch my-chart/values.yaml
 
-      # - name: Create Minimal Helm Chart
-      #   run: |
-      #     helm create my-chart
+      - name: Create Minimal Helm Chart
+        run: |
+          helm create my-chart
 
       # - name: Package Helm Chart
       #   run: |
