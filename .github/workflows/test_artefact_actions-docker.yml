@@ -19,7 +19,7 @@ jobs:
           REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
           REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
         options: >-
-          --health-cmd="wget --no-verbose --tries=1 --spider --user=testuser --password=testpassword http://localhost:5000/v2/ || exit 1"
+          --health-cmd="if ! command -v curl; then apk add curl; fi; curl -u 'testuser:testpassword' http://localhost:5000/v2/ || exit 1"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
@@ -43,7 +43,7 @@ jobs:
       - name: Start Docker Registry
         run: |
           sleep 20
-          wget --no-verbose --tries=1 --spider --user=testuser --password=testpassword http://localhost:5000/v2/ || exit 1
+          curl -u 'testuser:testpassword' http://localhost:5000/v2/ || exit 1
 
       # - name: Set up MinIO Client (mc)
       #   run: |
