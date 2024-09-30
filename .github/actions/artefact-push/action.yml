@@ -1,3 +1,6 @@
+# https://github.com/docker/build-push-action
+# https://github.com/docker/login-action
+
 name: artifact-push
 description: Push artifacts to JFROG, S3, and ECR repositories using ORAS CLI
 branding:
@@ -13,7 +16,7 @@ inputs:
       oci:// => oras push
       s3:// => aws s3 cp
     required: true
-  service:
+  provider:
     description: |
       Service to push artifacts to
       - aws =>
@@ -50,7 +53,7 @@ runs:
 
         # Check if 'to' starts with a supported scheme
         schemes=(
-          # "docker"
+          "docker"
           # "helm"
           # "jfrog"
           # "oci"
@@ -64,7 +67,9 @@ runs:
           fi
         done
         if [[ $found -ne 1 ]]; then
-          echo "Invalid scheme. Scheme must be one of '${schemes[@]}' followed by '://'. i.e. s3://"
+          schemes_string=""
+          for s in "${schemes[@]}"; do schemes_string="$schemes_string $s://"; done
+          echo "Invalid scheme. Scheme must be one of$schemes_string"
         fi
 
         # Extract scheme from the lowercased destination

@@ -11,6 +11,13 @@ on:
 jobs:
   test-artefact-actions:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        registry:
+          - endpoint: localhost:5000
+            username: testuser
+            password: testpassword
+            provider: ''
     services:
       htpasswd:
         image: httpd:2.4-alpine
@@ -45,86 +52,11 @@ jobs:
           docker pull alpine:latest
           docker tag alpine:latest localhost:5000/alpine:latest
 
-      - name: Docker Login
-        uses: docker/login-action@v3
+      - name: Test Docker Push to Local Registry
+        uses: ./.github/actions/artefact-push
         with:
-          registry: localhost:5000
-          username: testuser
-          password: testpassword
-
-      - name: Build and push to local registry
-        uses: docker/build-push-action@v6
-        with:
-          push: true
-          tags: localhost:5000/alpine:latest
-
-      - name: Configure MinIO
-        run: |
-          docker image rm alpine localhost:5000/alpine
-
-      - name: Build Test Artefact
-        run: |
-          echo "This is a test artefact" > test-artefact.txt
-
-      # - name: Test Artefact Push to S3 (MinIO)
-      #   uses: ./.github/actions/artefact-push
-      #   with:
-      #     to: s3://test-bucket
-      #     artefact: test-artefact.txt
-      #     version: v1.0.0
-      #     aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: ${{ env.AWS_REGION }}
-      #     no-aws-auth: true  # Since MinIO accepts any credentials
-
-      # - name: Verify Artefact in MinIO
-      #   run: |
-      #     mc ls myminio/test-bucket/v1.0.0/
-
-      # - name: Test Artefact Pull from S3 (MinIO)
-      #   uses: ./.github/actions/artefact-pull
-      #   with:
-      #     from: s3://test-bucket
-      #     artefact: test-artefact.txt
-      #     version: v1.0.0
-      #     aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: ${{ env.AWS_REGION }}
-      #     no-aws-auth: true
-
-      # - name: Verify Pulled Artefact
-      #   run: |
-      #     cat test-artefact.txt
-
-      # - name: Build Docker Image
-      #   run: |
-      #     echo -e "FROM alpine\nCMD echo 'Hello World'" > Dockerfile
-      #     docker build -t localhost:5000/test-image:latest .
-
-      # - name: Test Docker Push to Local Registry
-      #   uses: ./.github/actions/artefact-push
-      #   with:
-      #     to: docker://localhost:5000/test-image
-      #     version: latest
-      #     artefact: Dockerfile  # Not used, but required
-      #     jfrog-user: dummy  # Not used for local registry
-      #     jfrog-pass: dummy
-
-      # - name: Verify Docker Image in Registry
-      #   run: |
-      #     curl -X GET http://localhost:5000/v2/_catalog
-
-      # - name: Test Docker Pull from Local Registry
-      #   uses: ./.github/actions/artefact-pull
-      #   with:
-      #     from: docker://localhost:5000/test-image
-      #     version: latest
-      #     artefact: Dockerfile  # Not used, but required
-      #     jfrog-user: dummy  # Not used for local registry
-      #     jfrog-pass: dummy
-
-      # - name: Cleanup
-      #   if: ${{ always() }}
-      #   run: |
-      #     docker rmi localhost:5000/test-image:latest || true
-      #     mc rb --force myminio/test-bucket
+          to: docker://${{ matrix.registry.username }}/alpine
+          provider: ${{ matrix.registry.provider }}
+          version: latest
+          username: ${{ matrix.registry.username }}
+          password: ${{ matrix.registry.password }}
