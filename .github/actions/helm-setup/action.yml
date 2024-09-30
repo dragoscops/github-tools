@@ -37,6 +37,6 @@ runs:
       if: ${{ steps.helm-test.outputs.helm_installed == '1' || steps.helm-setup.outputs.helm_installed == '1' }}
       shell: bash
       run: |
-        echo "Helm Version: $(helm --version)"
+        echo "Helm Version: $(helm -v)"
 
         echo "helm_installed=1" >> $GITHUB_OUTPUT
