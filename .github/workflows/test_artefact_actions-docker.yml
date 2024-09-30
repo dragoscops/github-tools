@@ -14,10 +14,20 @@ jobs:
     strategy:
       matrix:
         include:
-          - endpoint: localhost:5000
+          - registry: localhost:5000
             username: testuser
             password: testpassword
             provider: ''
+          # TODO: setup a ghcr.io test account
+          # - registry: ghcr.io
+          #   username: testuser
+          #   password: testpassword
+          #   provider: ''
+          # TODO: setup a gilab.com registry
+          # - registry: registry.gitlab.com
+          #   username: testuser
+          #   password: testpassword
+          #   provider: ''
     services:
       htpasswd:
         image: httpd:2.4-alpine
@@ -55,7 +65,7 @@ jobs:
       - name: Test Docker Push to ${{ matrix.provider || 'Local' }} Registry
         uses: ./.github/actions/artefact-push
         with:
-          to: docker://${{ matrix.endpoint }}
+          to: docker://${{ matrix.registry }}
           provider: ${{ matrix.provider }}
           artifact: alpine
           version: latest
@@ -64,4 +74,4 @@ jobs:
 
       - name: Test Pushed Docker Image
         run: |
-          docker run --rm ${{ matrix.endpoint}}/alpine:latest sh -c "date"
+          docker run --rm ${{ matrix.registry}}/alpine:latest sh -c "date"
