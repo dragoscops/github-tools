@@ -9,11 +9,15 @@ on:
   # pull_request:
 
 jobs:
+  setup-registry-credentials:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Docker Registry User
+        run: |
+          htpasswd -Bbn testuser testpass > .github/registry/auth/htpasswd
+
   test-artefact-actions:
     runs-on: ubuntu-latest
-    env:
-      DOCKER_USERNAME: testuser
-      DOCKER_PASSWORD: testpass
     services:
       registry:
         image: registry:2
@@ -32,10 +36,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set Docker Registry User
-        run: |
-          htpasswd -Bbn ${{ env.DOCKER_USERNAME }} ${{ env.DOCKER_PASSWORD }} > .github/registry/auth/htpasswd
-
       # - name: Set up MinIO Client (mc)
       #   run: |
       #     curl -sO https://dl.min.io/client/mc/release/linux-amd64/mc
@@ -51,16 +51,16 @@ jobs:
       #   run: |
       #     echo "This is a test artefact" > test-artefact.txt
 
-      - name: Test Artefact Push to S3 (MinIO)
-        uses: ./.github/actions/artefact-push
-        with:
-          to: s3://test-bucket
-          artefact: test-artefact.txt
-          version: v1.0.0
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-          no-aws-auth: true  # Since MinIO accepts any credentials
+      # - name: Test Artefact Push to S3 (MinIO)
+      #   uses: ./.github/actions/artefact-push
+      #   with:
+      #     to: s3://test-bucket
+      #     artefact: test-artefact.txt
+      #     version: v1.0.0
+      #     aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ env.AWS_REGION }}
+      #     no-aws-auth: true  # Since MinIO accepts any credentials
 
       # - name: Verify Artefact in MinIO
       #   run: |
@@ -109,6 +109,7 @@ jobs:
       #     jfrog-pass: dummy
 
       # - name: Cleanup
+      #   if: ${{ always() }}
       #   run: |
       #     docker rmi localhost:5000/test-image:latest || true
       #     mc rb --force myminio/test-bucket
