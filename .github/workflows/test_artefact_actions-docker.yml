@@ -76,7 +76,6 @@ jobs:
         uses: ./.github/actions/artefact-push
         with:
           to: docker://${{ matrix.registry }}
-          provider: ${{ matrix.provider }}
           artifact: alpine
           version: latest
           username: ${{ matrix.username }}
