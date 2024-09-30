@@ -1,42 +1,40 @@
-name: Test Artifact Actions
+name: Test Artefact Actions (Docker)
 
 on:
   workflow_dispatch:
+  workflow_call:
   # push:
   #   branches:
   #     - main
   # pull_request:
 
 jobs:
-  test-artifact-actions:
+  test-artefact-actions:
     runs-on: ubuntu-latest
-    # env:
-    #   AWS_ACCESS_KEY_ID: minio
-    #   AWS_SECRET_ACCESS_KEY: minio123
-    #   AWS_REGION: us-east-1
-    # services:
-    #   minio:
-    #     image: minio/minio
-    #     ports:
-    #       - 9000:9000
-    #     options: >-
-    #       --health-cmd "curl --silent http://localhost:9000/minio/health/ready || exit 1"
-    #       --health-interval 5s
-    #       --health-timeout 5s
-    #       --health-retries 20
-    #       server /data
-    #   registry:
-    #     image: registry:2
-    #     ports:
-    #       - 5000:5000
-    #     options: >-
-    #       --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:5000/v2/ || exit 1"
-    #       --health-interval 5s
-    #       --health-timeout 5s
-    #       --health-retries 20
+    env:
+      DOCKER_USERNAME: testuser
+      DOCKER_PASSWORD: testpass
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+        options: >-
+          -e REGISTRY_AUTH=htpasswd
+          -e REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm"
+          -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd
+          -v /github/workspace/.github/registry/auth:/auth
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:5000/v2/ || exit 1"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+
+      - name: Set Docker Registry User
+        run: |
+          htpasswd -Bbn ${{ env.DOCKER_USERNAME }} ${{ env.DOCKER_PASSWORD }} > .github/registry/auth/htpasswd
 
       # - name: Set up MinIO Client (mc)
       #   run: |
@@ -49,39 +47,39 @@ jobs:
       #     mc alias set myminio http://localhost:9000 ${{ env.AWS_ACCESS_KEY_ID }} ${{ env.AWS_SECRET_ACCESS_KEY }}
       #     mc mb myminio/test-bucket
 
-      # - name: Build Test Artifact
+      # - name: Build Test Artefact
       #   run: |
-      #     echo "This is a test artifact" > test-artifact.txt
+      #     echo "This is a test artefact" > test-artefact.txt
 
-      - name: Test Artifact Push to S3 (MinIO)
+      - name: Test Artefact Push to S3 (MinIO)
         uses: ./.github/actions/artefact-push
         with:
           to: s3://test-bucket
-          artifact: test-artifact.txt
+          artefact: test-artefact.txt
           version: v1.0.0
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
           no-aws-auth: true  # Since MinIO accepts any credentials
 
-      # - name: Verify Artifact in MinIO
+      # - name: Verify Artefact in MinIO
       #   run: |
       #     mc ls myminio/test-bucket/v1.0.0/
 
-      # - name: Test Artifact Pull from S3 (MinIO)
+      # - name: Test Artefact Pull from S3 (MinIO)
       #   uses: ./.github/actions/artefact-pull
       #   with:
       #     from: s3://test-bucket
-      #     artifact: test-artifact.txt
+      #     artefact: test-artefact.txt
       #     version: v1.0.0
       #     aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
       #     aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
       #     aws-region: ${{ env.AWS_REGION }}
       #     no-aws-auth: true
 
-      # - name: Verify Pulled Artifact
+      # - name: Verify Pulled Artefact
       #   run: |
-      #     cat test-artifact.txt
+      #     cat test-artefact.txt
 
       # - name: Build Docker Image
       #   run: |
@@ -93,7 +91,7 @@ jobs:
       #   with:
       #     to: docker://localhost:5000/test-image
       #     version: latest
-      #     artifact: Dockerfile  # Not used, but required
+      #     artefact: Dockerfile  # Not used, but required
       #     jfrog-user: dummy  # Not used for local registry
       #     jfrog-pass: dummy
 
@@ -106,7 +104,7 @@ jobs:
       #   with:
       #     from: docker://localhost:5000/test-image
       #     version: latest
-      #     artifact: Dockerfile  # Not used, but required
+      #     artefact: Dockerfile  # Not used, but required
       #     jfrog-user: dummy  # Not used for local registry
       #     jfrog-pass: dummy
 
