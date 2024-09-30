@@ -21,6 +21,8 @@ runs:
           echo "helm_installed=0" >> $GITHUB_OUTPUT
         fi
 
+    # https://helm.sh/docs/intro/install/#from-script
+    #
     - name: Setup Helm
       id: helm-setup
       if: ${{ steps.helm-test.outputs.helm_installed == '1' || inputs.force }}
@@ -37,6 +39,6 @@ runs:
       if: ${{ steps.helm-test.outputs.helm_installed == '1' || steps.helm-setup.outputs.helm_installed == '1' }}
       shell: bash
       run: |
-        echo "Helm Version: $(helm -v)"
+        echo "Helm Version: $(helm version)"
 
         echo "helm_installed=1" >> $GITHUB_OUTPUT
