@@ -85,7 +85,7 @@ runs:
         echo "destination=${destination}" >> $GITHUB_OUTPUT
 
     - name: Login to Docker Registry
-      if: ${{ steps.detect-values.outputs.destination == 'docker' && ! intpus.provider }}
+      if: ${{ steps.detect-values.outputs.scheme == 'docker' && ! intpus.provider }}
       uses: docker/login-action@v3
       with:
         registry: ${{ steps.detect-values.outputs.destination }}
