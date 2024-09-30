@@ -1,4 +1,4 @@
-name: Test Artefact Actions (Helm)
+name: Test Artifact Actions (Helm)
 
 on:
   workflow_dispatch:
@@ -9,69 +9,94 @@ on:
   pull_request:
 
 jobs:
-  test-artefact-actions:
+  test-artifact-actions:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - registry: localhost:5000
+          - registry_name: oci-registry
+            registry_url: oci://localhost:5000/my-helm-charts
             username: testuser
             password: testpassword
-    #       - registry: localhost:5000
-    #         options: '{ "docker_login_action": { "with": { "registry": "localhost:5000", "username": "testuser", "password": "testpassword" } } }'
-    #       # TODO: setup an AWS registry
-    #       # - registry: ...
-    #       #   username: testuser
-    #       #   password: testpassword
-    #       # TODO: setup a GAR registry
-    #       # - registry: registry.gitlab.com
-    #       #   username: testuser
-    #       #   password: testpassword
-    #       #   provider: ''
-    # services:
-    #   htpasswd:
-    #     image: httpd:2.4-alpine
-    #     options: >-
-    #       --health-cmd="htpasswd -Bbn testuser testpassword > /auth/htpasswd"
-    #       --health-interval=5s
-    #       --health-timeout=5s
-    #       --health-retries=20
-    #     volumes:
-    #       - /tmp/registry/auth:/auth
-    #   registry:
-    #     image: registry:2
-    #     env:
-    #       REGISTRY_AUTH: htpasswd
-    #       REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
-    #       REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
-    #     options: >-
-    #       --health-cmd="if ! command -v curl; then apk add curl; fi; curl -u 'testuser:testpassword' http://localhost:5000/v2/ || exit 1"
-    #       --health-interval=5s
-    #       --health-timeout=5s
-    #       --health-retries=20
-    #     ports:
-    #       - 5000:5000
-    #     volumes:
-    #       - /tmp/registry/auth:/auth
+            oci_repo: true
+          - registry_name: chartmuseum
+            registry_url: http://localhost:8080
+            username: testuser
+            password: testpassword
+            oci_repo: false
+
+    services:
+      htpasswd:
+        image: httpd:2.4-alpine
+        options: >-
+          --health-cmd="htpasswd -Bbn testuser testpassword > /auth/htpasswd"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+        volumes:
+          - /tmp/registry/auth:/auth
+      registry:
+        image: registry:2
+        env:
+          REGISTRY_AUTH: htpasswd
+          REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
+          REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+        options: >-
+          --health-cmd="if ! command -v curl; then apk add curl; fi; curl -u 'testuser:testpassword' http://localhost:5000/v2/ || exit 1"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+        ports:
+          - 5000:5000
+        volumes:
+          - /tmp/registry/auth:/auth
+
+      chartmuseum:
+        image: chartmuseum/chartmuseum:latest
+        env:
+          BASIC_AUTH_USER: testuser
+          BASIC_AUTH_PASS: testpassword
+        ports:
+          - 8080:8080
+        options: >
+          --health-cmd="curl -f http://localhost:8080/health || exit 1"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # - name: Prepare docker test image
-      #   run: |
-      #     docker pull alpine:latest
-      #     docker tag alpine:latest localhost:5000/alpine:latest
+      - name: Install Helm
+        uses: dragoscirjan/github-tools/.github/actions/helm-setup@${{ github.ref_name  }}
 
-      - name: Test Docker Push to ${{ matrix.registry }} with ${{ matrix.options || 'no' }} options
-        uses: ./.github/actions/artefact-push
-        with:
-          to: helm://${{ matrix.registry }}
-          artifact: alpine
-          version: latest
-          username: ${{ matrix.username }}
-          password: ${{ matrix.password }}
-          options: ${{ matrix.options || '' }}
-
-      # - name: Test Pushed Docker Image
+      # - name: Create Minimal Helm Chart
       #   run: |
-      #     docker run --rm ${{ matrix.registry}}/alpine:latest sh -c "date"
+      #     helm create my-chart
+
+      # - name: Package Helm Chart
+      #   run: |
+      #     helm package my-chart --version 0.1.0
+
+      # - name: Test Artifact Push to ${{ matrix.registry_name }} (${{ matrix.registry_url }})
+      #   uses: ./.github/actions/artefact-push
+      #   with:
+      #     to: helm://${{ matrix.registry_url }}
+      #     artifact: my-chart
+      #     version: 0.1.0
+      #     username: ${{ matrix.username }}
+      #     password: ${{ matrix.password }}
+
+      # - name: Verify Helm Chart in ${{ matrix.registry_name }}
+      #   if: ${{ matrix.oci_repo }}
+      #   run: |
+      #     helm registry login localhost:5000 --username ${{ matrix.username }} --password ${{ matrix.password }}
+      #     helm chart list localhost:5000/my-helm-charts
+
+      # - name: Verify Helm Chart in ${{ matrix.registry_name }}
+      #   if: ${{ !matrix.oci_repo }}
+      #   run: |
+      #     helm repo add my-repo ${{ matrix.registry_url }} --username ${{ matrix.username }} --password ${{ matrix.password }}
+      #     helm repo update
+      #     helm search repo my-repo
