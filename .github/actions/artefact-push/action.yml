@@ -194,6 +194,13 @@ runs:
           echo "oci_repo=false" >> $GITHUB_OUTPUT
         fi
 
+    # TODO: error with registry:2...
+    # helm registry login oci://localhost:5000/my-helm-charts \
+    #   --username testuser \
+    #   --password testpassword
+    # shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+    # WARNING: Using --password via the CLI is insecure. Use --password-stdin.
+    # Error: Get "https://oci/v2/": dial tcp: lookup oci on 127.0.0.53:53: server misbehaving
     - name: Helm OCI Authentication
       if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'true' }}
       shell: bash

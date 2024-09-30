@@ -14,54 +14,52 @@ jobs:
     strategy:
       matrix:
         include:
-          - registry: oci://localhost:5000/my-helm-charts
-            username: testuser
-            password: testpassword
-            oci_repo: true
-          # - registry: http://localhost:8080
+          # - registry: oci://localhost:5000/my-helm-charts
           #   username: testuser
           #   password: testpassword
-          #   oci_repo: false
+          - registry: http://localhost:8080
+            username: testuser
+            password: testpassword
 
     services:
-      htpasswd:
-        image: httpd:2.4-alpine
-        options: >-
-          --health-cmd="htpasswd -Bbn testuser testpassword > /auth/htpasswd"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-        volumes:
-          - /tmp/registry/auth:/auth
-
-      registry:
-        image: registry:2
-        env:
-          REGISTRY_AUTH: htpasswd
-          REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
-          REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
-        options: >-
-          --health-cmd="if ! command -v curl; then apk add curl; fi; curl -u 'testuser:testpassword' http://localhost:5000/v2/ || exit 1"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-        ports:
-          - 5000:5000
-        volumes:
-          - /tmp/registry/auth:/auth
-
-      # chartmuseum:
-      #   image: chartmuseum/chartmuseum:latest
-      #   env:
-      #     BASIC_AUTH_USER: testuser
-      #     BASIC_AUTH_PASS: testpassword
-      #   ports:
-      #     - 8080:8080
-      #   options: >
-      #     --health-cmd="curl -f http://localhost:8080/health || exit 1"
+      # htpasswd:
+      #   image: httpd:2.4-alpine
+      #   options: >-
+      #     --health-cmd="htpasswd -Bbn testuser testpassword > /auth/htpasswd"
       #     --health-interval=5s
       #     --health-timeout=5s
       #     --health-retries=20
+      #   volumes:
+      #     - /tmp/registry/auth:/auth
+
+      # registry:
+      #   image: registry:2
+      #   env:
+      #     REGISTRY_AUTH: htpasswd
+      #     REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
+      #     REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      #   options: >-
+      #     --health-cmd="if ! command -v curl; then apk add curl; fi; curl -u 'testuser:testpassword' http://localhost:5000/v2/ || exit 1"
+      #     --health-interval=5s
+      #     --health-timeout=5s
+      #     --health-retries=20
+      #   ports:
+      #     - 5000:5000
+      #   volumes:
+      #     - /tmp/registry/auth:/auth
+
+      chartmuseum:
+        image: chartmuseum/chartmuseum:latest
+        env:
+          BASIC_AUTH_USER: testuser
+          BASIC_AUTH_PASS: testpassword
+        ports:
+          - 8080:8080
+        options: >
+          --health-cmd="curl -f http://localhost:8080/health || exit 1"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
 
     steps:
       - name: Checkout Repository
