@@ -15,7 +15,7 @@ runs:
       id: helm-test
       shell: bash
       run: |
-        if ! command -v helm &> /dev/null; then
+        if command -v helm &> /dev/null; then
           echo "helm_installed=1" >> $GITHUB_OUTPUT
         else
           echo "helm_installed=0" >> $GITHUB_OUTPUT
