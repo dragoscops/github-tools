@@ -14,13 +14,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - registry_name: oci-registry
-            registry_url: helm://oci://localhost:5000/my-helm-charts
+          - registry: oci://localhost:5000/my-helm-charts
             username: testuser
             password: testpassword
             oci_repo: true
-          # - registry_name: chartmuseum
-          #   registry_url: helm://localhost:8080
+          # - registry: http://localhost:8080
           #   username: testuser
           #   password: testpassword
           #   oci_repo: false
@@ -69,43 +67,47 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Install Helm
+        uses: dragoscirjan/github-tools/.github/actions/helm-setup@main
+
       - name: Create Minimal Helm Chart
         run: |
           mkdir my-chart
+
           cat <<EOF > my-chart/Chart.yaml
           apiVersion: v2
           name: my-chart
-          version: ${{ inputs.version }}
+          version: 0.1.0
           EOF
+
           mkdir my-chart/templates
+
           touch my-chart/values.yaml
 
-      - name: Create Minimal Helm Chart
-        run: |
           helm create my-chart
 
-      # - name: Package Helm Chart
-      #   run: |
-      #     helm package my-chart --version 0.1.0
+      - name: Package Helm Chart
+        run: |
+          helm package my-chart --version 0.1.0
 
-      # - name: Test Artifact Push to ${{ matrix.registry_name }} (${{ matrix.registry_url }})
-      #   uses: ./.github/actions/artefact-push
-      #   with:
-      #     to: helm://${{ matrix.registry_url }}
-      #     artifact: my-chart
-      #     version: 0.1.0
-      #     username: ${{ matrix.username }}
-      #     password: ${{ matrix.password }}
+      - name: Test Artifact Push to ${{ matrix.registry }}
+        uses: ./.github/actions/artefact-push
+        with:
+          to: helm://${{ matrix.registry }}
+          artifact: my-chart
+          version: 0.1.0
+          username: ${{ matrix.username }}
+          password: ${{ matrix.password }}
 
-      # - name: Verify Helm Chart in ${{ matrix.registry_name }}
+      # - name: Verify Helm Chart in ${{ matrix.registry }}
       #   if: ${{ matrix.oci_repo }}
       #   run: |
       #     helm registry login localhost:5000 --username ${{ matrix.username }} --password ${{ matrix.password }}
       #     helm chart list localhost:5000/my-helm-charts
 
-      # - name: Verify Helm Chart in ${{ matrix.registry_name }}
+      # - name: Verify Helm Chart in ${{ matrix.registry }}
       #   if: ${{ !matrix.oci_repo }}
       #   run: |
-      #     helm repo add my-repo ${{ matrix.registry_url }} --username ${{ matrix.username }} --password ${{ matrix.password }}
+      #     helm repo add my-repo ${{ matrix.registry }} --username ${{ matrix.username }} --password ${{ matrix.password }}
       #     helm repo update
       #     helm search repo my-repo
