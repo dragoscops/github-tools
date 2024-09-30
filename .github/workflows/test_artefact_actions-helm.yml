@@ -55,7 +55,11 @@ jobs:
           BASIC_AUTH_PASS: testpassword
         ports:
           - 8080:8080
+        volumes:
+          - /tmp/charts:/charts
         options: >-
+          --storage="local"
+          --storage-local-rootdir="/charts"
           --health-cmd="curl -f http://localhost:8080/health || exit 1"
           --health-interval=5s
           --health-timeout=5s
