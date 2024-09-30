@@ -22,7 +22,7 @@ runs:
         fi
 
     - name: Setup Helm
-      id: helm-url
+      id: helm-setup
       if: ${{ steps.helm-test.outputs.helm_installed == "1" || inputs.force }}
       shell: bash
       run: |
@@ -30,4 +30,11 @@ runs:
 
         helm plugin install https://github.com/chartmuseum/helm-push
 
-        echo "helm_checksum=${helm_CHECKSUM}" >> $GITHUB_OUTPUT
+        echo "helm_installed=1" >> $GITHUB_OUTPUT
+
+    - name: Test Helm
+      id: helm-install
+      if: ${{ steps.helm-test.outputs.helm_installed == "1" || steps.helm-setup.outputs.helm_installed == "1" }}
+      shell: bash
+      run: |
+        echo "helm_installed=1" >> $GITHUB_OUTPUT
