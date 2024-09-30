@@ -9,36 +9,33 @@ on:
   pull_request:
 
 jobs:
-  setup-registry-credentials:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set Docker Registry User
-        run: |
-          sudo apt-get update && sudo apt-get install -y apache2-utils
-
-          mkdir -p ${{ github.workspace }}/.github/registry/auth
-          htpasswd -Bbn testuser testpass > ${{ github.workspace }}/.github/registry/auth/htpasswd
-
   test-artefact-actions:
-    needs:
-      - setup-registry-credentials
     runs-on: ubuntu-latest
     services:
       registry:
         image: registry:2
-        ports:
-          - 5000:5000
         env:
           REGISTRY_AUTH: htpasswd
           REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
           REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
-        volumes:
-          - ${{ github.workspace }}/.github/registry/auth:/auth
         options: >-
           --health-cmd="wget --no-verbose --tries=1 --spider http://localhost:5000/v2/ || exit 1"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
+        ports:
+          - 5000:5000
+        volumes:
+          - /tmp/registry/auth:/auth
+      htpasswd:
+        image: httpd:2.4-alpine
+        options: >-
+          --health-cmd="htpasswd -Bbn testuser testpassword > /auth/htpasswd"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+        volumes:
+          - /tmp/registry/auth:/auth
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
