@@ -42,7 +42,7 @@ jobs:
 
       - name: Prepare docker test image
         run: |
-          docker pull apline:latest
+          docker pull alpine:latest
           docker tag alpine:latest localhost:5000/alpine:latest
 
       - name: Docker Login
