@@ -16,8 +16,8 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y apache2-utils
 
-          mkdir -p .github/registry/auth
-          htpasswd -Bbn testuser testpass > .github/registry/auth/htpasswd
+          mkdir -p ${{ github.workspace }}/.github/registry/auth
+          htpasswd -Bbn testuser testpass > ${{ github.workspace }}/.github/registry/auth/htpasswd
 
   test-artefact-actions:
     needs:
@@ -28,11 +28,13 @@ jobs:
         image: registry:2
         ports:
           - 5000:5000
-        options: >-
-          -e REGISTRY_AUTH=htpasswd
-          -e REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm"
-          -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd
-          -v /github/workspace/.github/registry/auth:/auth
+        env:
+          REGISTRY_AUTH: htpasswd
+          REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
+          REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+        volumes:
+          - ${{ github.workspace }}/.github/registry/auth:/auth
+        options: >
           --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:5000/v2/ || exit 1"
           --health-interval 5s
           --health-timeout 5s
