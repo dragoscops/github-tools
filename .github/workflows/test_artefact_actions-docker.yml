@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        registry:
+        include:
           - endpoint: localhost:5000
             username: testuser
             password: testpassword
@@ -52,11 +52,11 @@ jobs:
           docker pull alpine:latest
           docker tag alpine:latest localhost:5000/alpine:latest
 
-      - name: Test Docker Push to Local Registry
+      - name: Test Docker Push to ${{ matrix.provider || 'Local' }} Registry
         uses: ./.github/actions/artefact-push
         with:
-          to: docker://${{ matrix.registry.username }}/alpine
-          provider: ${{ matrix.registry.provider }}
+          to: docker://${{ matrix.endpoint }}/alpine
+          provider: ${{ matrix.provider }}
           version: latest
-          username: ${{ matrix.registry.username }}
-          password: ${{ matrix.registry.password }}
+          username: ${{ matrix.username }}
+          password: ${{ matrix.password }}
