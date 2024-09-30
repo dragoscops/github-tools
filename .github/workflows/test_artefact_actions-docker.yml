@@ -12,6 +12,15 @@ jobs:
   test-artefact-actions:
     runs-on: ubuntu-latest
     services:
+      htpasswd:
+        image: httpd:2.4-alpine
+        options: >-
+          --health-cmd="htpasswd -Bbn testuser testpassword > /auth/htpasswd"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+        volumes:
+          - /tmp/registry/auth:/auth
       registry:
         image: registry:2
         env:
@@ -27,38 +36,35 @@ jobs:
           - 5000:5000
         volumes:
           - /tmp/registry/auth:/auth
-      htpasswd:
-        image: httpd:2.4-alpine
-        options: >-
-          --health-cmd="htpasswd -Bbn testuser testpassword > /auth/htpasswd"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-        volumes:
-          - /tmp/registry/auth:/auth
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Start Docker Registry
+      - name: Prepare docker test image
         run: |
-          sleep 20
-          curl -u 'testuser:testpassword' http://localhost:5000/v2/ || exit 1
+          docker pull apline:latest
+          docker tag alpine:latest localhost:5000/alpine:latest
 
-      # - name: Set up MinIO Client (mc)
-      #   run: |
-      #     curl -sO https://dl.min.io/client/mc/release/linux-amd64/mc
-      #     chmod +x mc
-      #     sudo mv mc /usr/local/bin/
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: localhost:5000
+          username: testuser
+          password: testpassword
 
-      # - name: Configure MinIO
-      #   run: |
-      #     mc alias set myminio http://localhost:9000 ${{ env.AWS_ACCESS_KEY_ID }} ${{ env.AWS_SECRET_ACCESS_KEY }}
-      #     mc mb myminio/test-bucket
+      - name: Build and push to local registry
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: localhost:5000/alpine:latest
 
-      # - name: Build Test Artefact
-      #   run: |
-      #     echo "This is a test artefact" > test-artefact.txt
+      - name: Configure MinIO
+        run: |
+          docker image rm alpine localhost:5000/alpine
+
+      - name: Build Test Artefact
+        run: |
+          echo "This is a test artefact" > test-artefact.txt
 
       # - name: Test Artefact Push to S3 (MinIO)
       #   uses: ./.github/actions/artefact-push
