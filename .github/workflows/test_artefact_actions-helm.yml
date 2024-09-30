@@ -1,0 +1,77 @@
+name: Test Artefact Actions (Helm)
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test-artefact-actions:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - registry: localhost:5000
+            username: testuser
+            password: testpassword
+    #       - registry: localhost:5000
+    #         options: '{ "docker_login_action": { "with": { "registry": "localhost:5000", "username": "testuser", "password": "testpassword" } } }'
+    #       # TODO: setup an AWS registry
+    #       # - registry: ...
+    #       #   username: testuser
+    #       #   password: testpassword
+    #       # TODO: setup a GAR registry
+    #       # - registry: registry.gitlab.com
+    #       #   username: testuser
+    #       #   password: testpassword
+    #       #   provider: ''
+    # services:
+    #   htpasswd:
+    #     image: httpd:2.4-alpine
+    #     options: >-
+    #       --health-cmd="htpasswd -Bbn testuser testpassword > /auth/htpasswd"
+    #       --health-interval=5s
+    #       --health-timeout=5s
+    #       --health-retries=20
+    #     volumes:
+    #       - /tmp/registry/auth:/auth
+    #   registry:
+    #     image: registry:2
+    #     env:
+    #       REGISTRY_AUTH: htpasswd
+    #       REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
+    #       REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+    #     options: >-
+    #       --health-cmd="if ! command -v curl; then apk add curl; fi; curl -u 'testuser:testpassword' http://localhost:5000/v2/ || exit 1"
+    #       --health-interval=5s
+    #       --health-timeout=5s
+    #       --health-retries=20
+    #     ports:
+    #       - 5000:5000
+    #     volumes:
+    #       - /tmp/registry/auth:/auth
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # - name: Prepare docker test image
+      #   run: |
+      #     docker pull alpine:latest
+      #     docker tag alpine:latest localhost:5000/alpine:latest
+
+      - name: Test Docker Push to ${{ matrix.registry }} with ${{ matrix.options || 'no' }} options
+        uses: ./.github/actions/artefact-push
+        with:
+          to: helm://${{ matrix.registry }}
+          artifact: alpine
+          version: latest
+          username: ${{ matrix.username }}
+          password: ${{ matrix.password }}
+          options: ${{ matrix.options || '' }}
+
+      # - name: Test Pushed Docker Image
+      #   run: |
+      #     docker run --rm ${{ matrix.registry}}/alpine:latest sh -c "date"

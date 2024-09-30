@@ -3,10 +3,10 @@ name: Test Artefact Actions (Docker)
 on:
   workflow_dispatch:
   workflow_call:
-  push:
-    branches:
-      - main
-  pull_request:
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
 
 jobs:
   test-artefact-actions:
@@ -14,17 +14,18 @@ jobs:
     strategy:
       matrix:
         include:
+          # From https://github.com/docker/login-action?tab=readme-ov-file#usage
+          # all other usages except AWS and GAR should be covered by these two rules
           - registry: localhost:5000
             username: testuser
             password: testpassword
           - registry: localhost:5000
             options: '{ "docker_login_action": { "with": { "registry": "localhost:5000", "username": "testuser", "password": "testpassword" } } }'
-          # TODO: setup a ghcr.io test account
-          # - registry: ghcr.io
+          # TODO: setup an AWS registry
+          # - registry: ...
           #   username: testuser
           #   password: testpassword
-          #   provider: ''
-          # TODO: setup a gilab.com registry
+          # TODO: setup a GAR registry
           # - registry: registry.gitlab.com
           #   username: testuser
           #   password: testpassword

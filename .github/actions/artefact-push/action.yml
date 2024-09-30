@@ -1,6 +1,3 @@
-# https://github.com/docker/build-push-action
-# https://github.com/docker/login-action
-
 name: artifact-push
 description: Push artifacts to JFROG, S3, and ECR repositories using ORAS CLI
 branding:
@@ -54,7 +51,7 @@ runs:
         # Check if 'to' starts with a supported scheme
         schemes=(
           "docker"
-          # "helm"
+          "helm"
           # "jfrog"
           # "oci"
           # "s3"
@@ -86,6 +83,9 @@ runs:
 
     #
     # Handling Docker
+    # https://github.com/docker/login-action
+    # https://github.com/docker/build-push-action
+    # TODO: integrate the build & push action; so far pushing is good enough
     #
 
     - name: Override docker/login-action@v3 arguments
@@ -122,17 +122,120 @@ runs:
         password: ${{ inputs.password }}
       env: ${{ fromJSON(steps.docker-login-action.outputs.env) }}
 
-
     - name: Login to Docker Registry
       if: ${{ steps.detect-values.outputs.scheme == 'docker' && ! inputs.username && ! inputs.password }}
       uses: docker/login-action@v3
       with: ${{ fromJSON(steps.docker-login-action.outputs.with) }}
       env: ${{ fromJSON(steps.docker-login-action.outputs.env) }}
 
+    # - name: Override docker/login-action@v3 arguments
+    #   id: docker-build-push-action
+    #   if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
+    #   shell: bash
+    #   run: |
+    #     options='${{ inputs.options }}'
+
+    #     # Check if options is empty
+    #     if [ -n "$options" ]; then
+    #       echo "$options" | jq '.' >/dev/null 2>&1
+    #       if [ $? -eq 0 ]; then
+    #         options_with=$(echo "$options" | jq -c '.docker_build_push_action.with // {}')
+    #         options_env=$(echo "$options" | jq -c '.docker_build_push_action.env // {}')
+    #       else
+    #         options_with="{}"
+    #         options_env="{}"
+    #       fi
+    #     else
+    #       options_with="{}"
+    #       options_env="{}"
+    #     fi
+
+    #     echo "with=$options_with" >> $GITHUB_OUTPUT
+    #     echo "env=$options_env" >> $GITHUB_OUTPUT
+
     - name: Push to Docker Registry
       shell: bash
       run: |
         docker push ${{ steps.detect-values.outputs.destination }}/${{ inputs.artifact }}:${{ inputs.version }}
+
+    #
+    # Handling Helm
+    # https://github.com/marketplace/actions/helm-push
+    # TODO: integrate with non oci repositories; so far OCI is good enough
+    #
+
+    - name: Install Helm
+      if: ${{ steps.detect-values.outputs.scheme == 'helm' }}
+      uses: dragoscirjan/github-tools/.github/actions/helm-setup@main
+
+    # - name: Package Helm Chart
+    #   if: ${{ steps.detect-values.outputs.scheme == 'helm' }}
+    #   run: |
+    #     helm package ${{ inputs.artifact }} --version ${{ inputs.version }}
+    #     ls -la
+
+    # - name: Determine Helm Repository Type
+    #   id: helm-repo-type
+    #   if: ${{ steps.detect-values.outputs.scheme == 'helm' }}
+    #   shell: bash
+    #   run: |
+    #     destination="${{ steps.detect-values.outputs.destination }}"
+    #     if [[ "$destination" == oci://* ]]; then
+    #       echo "oci_repo=true" >> $GITHUB_OUTPUT
+    #     else
+    #       echo "oci_repo=false" >> $GITHUB_OUTPUT
+
+    # - name: Helm OCI Authentication
+    #   if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'true' && inputs.username && inputs.password }}
+    #   run: |
+    #     helm registry login ${{ steps.detect-values.outputs.destination }} \
+    #       --username ${{ inputs.username }} \
+    #       --password ${{ inputs.password }}
+
+    # - name: Push Helm Chart to OCI Registry
+    #   if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'true' }}
+    #   run: |
+    #     chart_package=$(ls *.tgz)
+    #     helm push $chart_package ${{ steps.detect-values.outputs.destination }}
+
+    # - name: Install Helm Push Plugin
+    #   if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'false' }}
+    #   run: |
+    #     helm plugin install https://github.com/chartmuseum/helm-push
+
+    # - name: Helm Repository Authentication
+    #   if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'false' && inputs.username && inputs.password }}
+    #   run: |
+    #     helm repo add my-repo ${{ steps.detect-values.outputs.destination }} --username ${{ inputs.username }} --password ${{ inputs.password }}
+
+    # - name: Push Helm Chart to Repository
+    #   if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'false' }}
+    #   run: |
+    #     chart_package=$(ls *.tgz)
+    #     helm push $chart_package my-repo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     # - name: Validate Inputs (aws)
     #   if: ${{ ! inputs.no-aws-auth && (endsWith(steps.detect-values.outputs.scheme, 'ecr') || steps.detect-values.outputs.scheme == 's3') }}

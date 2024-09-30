@@ -1,0 +1,33 @@
+name: helm-setup
+description: Setup Helm CLI on Linux GitHub Actions Runners
+inputs:
+  force:
+    description: Force installation or upgrade of helm even if it is already installed
+    required: false
+outputs:
+  helm-installed:
+    description: "Indicates if helm was installed or upgraded (1 if installed/upgraded)"
+    value: ${{ steps.helm-install.outputs.helm_installed }}
+runs:
+  using: "composite"
+  steps:
+    - name: Test helm Presence
+      id: helm-test
+      shell: bash
+      run: |
+        if ! command -v helm &> /dev/null; then
+          echo "helm_installed=1" >> $GITHUB_OUTPUT
+        else
+          echo "helm_installed=0" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Setup Helm
+      id: helm-url
+      if: ${{ steps.helm-test.outputs.helm_installed == "1" || inputs.force }}
+      shell: bash
+      run: |
+        curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+        helm plugin install https://github.com/chartmuseum/helm-push
+
+        echo "helm_checksum=${helm_CHECKSUM}" >> $GITHUB_OUTPUT
