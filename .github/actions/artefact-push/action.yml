@@ -84,6 +84,19 @@ runs:
         echo "destination=${destination}"
         echo "destination=${destination}" >> $GITHUB_OUTPUT
 
+    - name: Login to Docker Registry
+      if: ${{ steps.detect-values.outputs.destination == 'docker' && ! intpus.provider }}
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ steps.detect-values.outputs.destination }}
+        username: ${{ inputs.username }}
+        password: ${{ inputs.password }}
+
+    - name: Push to Docker Registry
+      shell: bash
+      run: |
+        docker push ${{ steps.detect-values.outputs.destination }}/${{ inputs.artifact}}:${{ inputs.version }}
+
     # - name: Validate Inputs (aws)
     #   if: ${{ ! inputs.no-aws-auth && (endsWith(steps.detect-values.outputs.scheme, 'ecr') || steps.detect-values.outputs.scheme == 's3') }}
     #   shell: bash
