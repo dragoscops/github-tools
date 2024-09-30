@@ -154,6 +154,7 @@ runs:
     #     echo "env=$options_env" >> $GITHUB_OUTPUT
 
     - name: Push to Docker Registry
+      if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
       shell: bash
       run: |
         docker push ${{ steps.detect-values.outputs.destination }}/${{ inputs.artifact }}:${{ inputs.version }}
