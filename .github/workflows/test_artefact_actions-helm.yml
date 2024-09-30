@@ -53,13 +53,13 @@ jobs:
         env:
           BASIC_AUTH_USER: testuser
           BASIC_AUTH_PASS: testpassword
+          STORAGE: local
+          STORAGE_LOCAL_ROOTDIR: /charts
         ports:
           - 8080:8080
         volumes:
           - /tmp/charts:/charts
         options: >-
-          --storage="local"
-          --storage-local-rootdir="/charts"
           --health-cmd="curl -f http://localhost:8080/health || exit 1"
           --health-interval=5s
           --health-timeout=5s
