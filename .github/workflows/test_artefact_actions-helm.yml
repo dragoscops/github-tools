@@ -81,7 +81,7 @@ jobs:
             -e DEBUG=1 \
             -e STORAGE=local \
             -e STORAGE_LOCAL_ROOTDIR=/charts \
-            -v /tmp/charts:/charts \
+            -v $(pwd)/charts:/charts \
             chartmuseum/chartmuseum:latest
 
           count=0
