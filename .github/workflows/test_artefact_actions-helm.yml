@@ -112,11 +112,14 @@ jobs:
       - name: Test Helm Push to OCI
         if: ${{ startsWith(matrix.registry, 'oci://') }}
         run: |
-          helm registry login ${{ steps.detect-values.outputs.destination }} \
+          registry="${{ matrix.registry }}"
+          registry=${registr/oci:\/\//}
+
+          helm registry login $registry \
             --username ${{ matrix.username }} \
             --password ${{ matrix.password }}
 
-          helm push ./my-chart-0.1.0.tgz ${{ matrix.repository }}
+          helm push ./my-chart-0.1.0.tgz $registry
 
       - name: Test Helm Push to Chartmuseum
         if: ${{ startsWith(matrix.registry, 'http://') }}
