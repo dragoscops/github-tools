@@ -213,7 +213,7 @@ runs:
           --password ${{ inputs.password }}
 
     - name: Package Helm Chart
-      if: ${{ intpus.build }}
+      if: ${{ inputs.build }}
       shell: bash
       run: |
         helm package ${{ inputs.artifacts }} --version ${{ inputs.version }}
