@@ -56,8 +56,8 @@ jobs:
           STORAGE_LOCAL_ROOTDIR: /charts
         ports:
           - 8080:8080
-        volumes:
-          - /tmp/charts:/charts
+        # volumes:
+        #   - /tmp/charts:/charts
         # options: >-
         #   --health-cmd="if ! command -v curl; then apk add curl; fi; curl -f http://localhost:8080/health || exit 1"
         #   --health-interval=5s
