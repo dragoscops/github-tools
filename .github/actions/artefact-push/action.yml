@@ -237,7 +237,7 @@ runs:
       shell: bash
       run: |
         chart_package=$(ls *.tgz)
-        helm cm-push $chart_package my-repo
+        helm cm-push $chart_package ${{ steps.detect-values.outputs.destination }}
 
     # - name: Validate Inputs (aws)
     #   if: ${{ ! inputs.no-aws-auth && (endsWith(steps.detect-values.outputs.scheme, 'ecr') || steps.detect-values.outputs.scheme == 's3') }}
