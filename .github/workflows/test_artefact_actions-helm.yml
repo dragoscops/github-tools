@@ -12,12 +12,12 @@ jobs:
     strategy:
       matrix:
         include:
-          # - registry: oci://localhost:5000/my-helm-charts
-          #   username: testuser
-          #   password: testpassword
-          - registry: http://localhost:8080
+          - registry: oci://localhost:5000/my-helm-charts
             username: testuser
             password: testpassword
+          # - registry: http://localhost:8080
+          #   username: testuser
+          #   password: testpassword
 
     services:
       htpasswd:
@@ -71,7 +71,8 @@ jobs:
       - name: Install Helm
         uses: dragoscirjan/github-tools/.github/actions/helm-setup@main
 
-      - name: Start Chartmuseum
+      - name: Wait for Chartmuseum
+        if: ${{ startsWith(matrix.registry, 'http://') }}
         run: |
           count=0
           while [[ 1 -eq 1 ]]; do
@@ -108,9 +109,19 @@ jobs:
         run: |
           helm package my-chart --version 0.1.0
 
-      - name: Test Helm Push
+      - name: Test Helm Push to OCI
+        if: ${{ startsWith(matrix.registry, 'oci://') }}
         run: |
-          helm repo add my-chart-test http://localhost:8080 --username ${{ matrix.username }} --password ${{ matrix.password }}
+          helm registry login ${{ steps.detect-values.outputs.destination }} \
+            --username ${{ matrix.username }} \
+            --password ${{ matrix.password }}
+
+          helm push ./my-chart-0.1.0.tgz ${{ matrix.repository }}
+
+      - name: Test Helm Push to Chartmuseum
+        if: ${{ startsWith(matrix.registry, 'http://') }}
+        run: |
+          helm repo add my-chart-test ${{ matrix.repository }} --username ${{ matrix.username }} --password ${{ matrix.password }}
           helm cm-push ./my-chart-0.1.0.tgz my-chart-test || true
 
           docker logs $(docker ps -a | grep chartmuseum | awk -F' ' '{ print $1 }')

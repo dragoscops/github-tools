@@ -197,6 +197,12 @@ runs:
           echo "oci_repo=false" >> $GITHUB_OUTPUT
         fi
 
+    - name: Package Helm Chart
+      if: ${{ inputs.build }}
+      shell: bash
+      run: |
+        helm package ${{ inputs.artefact }} --version ${{ inputs.version }}
+
     # TODO: error with registry:2...
     # helm registry login oci://localhost:5000/my-helm-charts \
     #   --username testuser \
@@ -204,7 +210,7 @@ runs:
     # shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
     # WARNING: Using --password via the CLI is insecure. Use --password-stdin.
     # Error: Get "https://oci/v2/": dial tcp: lookup oci on 127.0.0.53:53: server misbehaving
-    - name: Helm OCI Authentication
+    - name: Helm Push to OCI
       if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'true' }}
       shell: bash
       run: |
@@ -212,21 +218,11 @@ runs:
           --username ${{ inputs.username }} \
           --password ${{ inputs.password }}
 
-    - name: Package Helm Chart
-      if: ${{ inputs.build }}
-      shell: bash
-      run: |
-        helm package ${{ inputs.artefact }} --version ${{ inputs.version }}
-
-    - name: Push Helm Chart to OCI Registry
-      if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'true' }}
-      shell: bash
-      run: |
         chart_package=$(ls ${{ inputs.artefact }}*.tgz)
         echo "Chart Package: $chart_package"
         helm push $chart_package ${{ steps.detect-values.outputs.destination }}
 
-    - name: Helm Repository Authentication
+    - name: Helm Push to HTTP Repository
       if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'false' }}
       shell: bash
       run: |
