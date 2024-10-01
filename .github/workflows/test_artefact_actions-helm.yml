@@ -103,9 +103,9 @@ jobs:
 
       - name: Test Helm Push
         run: |
-          docker ps -a
           while [[ 1 -eq 1 ]]; do
             sleep 10
+            docker ps -a
             echo "Waiting for chartmuseum to start..."
             if curl -u 'testuser:testpassword' http://localhost:8080/health > /dev/null 2>&1 ; then break; fi
           done
