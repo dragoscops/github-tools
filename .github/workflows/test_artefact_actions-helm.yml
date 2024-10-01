@@ -103,6 +103,12 @@ jobs:
 
       - name: Test Helm Push
         run: |
+          while [[ 1 -eq 1 ]]; do
+            if curl -u 'testuser:testpassword' http://localhost:8080/health > /dev/null 2>&1 ; then break; fi
+            echo "Waiting for chartmuseum to start..."
+            sleep 5
+          done
+
           helm repo add my-chart-test http://localhost:8080 --username testuser --password test-password
           helm cm-push ./my-chart-0.1.0.tgz my-chart-test
 
