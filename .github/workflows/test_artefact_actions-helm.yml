@@ -72,10 +72,18 @@ jobs:
 
       - name: Wait for Chartmuseum
         run: |
+          count=0
           while [[ 1 -eq 1 ]]; do
+            echo "Waiting for Chartmuseum..."
             if curl -u 'testuser:testpassword' http://localhost:5010/health; then
               break
             fi
+            if [[ $count -gt 20 ]]; then
+              echo "Chartmuseum wait timed out"
+              exit 1
+            fi
+            sleep 5
+            count=$((count + 1))
           done
 
       - name: Create Minimal Helm Chart
