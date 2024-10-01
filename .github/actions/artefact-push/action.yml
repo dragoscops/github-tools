@@ -228,11 +228,13 @@ runs:
 
     - name: Helm Repository Authentication
       if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'false' }}
+      shell: bash
       run: |
         helm repo add my-repo ${{ steps.detect-values.outputs.destination }} --username ${{ inputs.username }} --password ${{ inputs.password }}
 
     - name: Push Helm Chart to Repository
       if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'false' }}
+      shell: bash
       run: |
         chart_package=$(ls *.tgz)
         helm push $chart_package my-repo
