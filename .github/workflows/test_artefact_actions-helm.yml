@@ -15,7 +15,7 @@ jobs:
           # - registry: oci://localhost:5000/my-helm-charts
           #   username: testuser
           #   password: testpassword
-          - registry: http://localhost:5010
+          - registry: http://localhost:8080
             username: testuser
             password: testpassword
 
@@ -46,22 +46,22 @@ jobs:
         volumes:
           - /tmp/registry/auth:/auth
 
-      # chartmuseum:
-      #   image: chartmuseum/chartmuseum:latest
-      #   env:
-      #     BASIC_AUTH_USER: testuser
-      #     BASIC_AUTH_PASS: testpassword
-      #     STORAGE: local
-      #     STORAGE_LOCAL_ROOTDIR: /charts
-      #   ports:
-      #     - 5010:5010
-      #   volumes:
-      #     - /tmp/charts:/charts
-      #   # options: >-
-      #   #   --health-cmd="if ! command -v curl; then apk add curl; fi; curl -f http://localhost:5010/health || exit 1"
-      #   #   --health-interval=5s
-      #   #   --health-timeout=5s
-      #   #   --health-retries=20
+      chartmuseum:
+        image: chartmuseum/chartmuseum:latest
+        env:
+          BASIC_AUTH_USER: testuser
+          BASIC_AUTH_PASS: testpassword
+          STORAGE: local
+          STORAGE_LOCAL_ROOTDIR: /charts
+        ports:
+          - 8080:8080
+        volumes:
+          - /tmp/charts:/charts
+        # options: >-
+        #   --health-cmd="if ! command -v curl; then apk add curl; fi; curl -f http://localhost:8080/health || exit 1"
+        #   --health-interval=5s
+        #   --health-timeout=5s
+        #   --health-retries=20
 
     steps:
       - name: Checkout Repository
@@ -72,23 +72,11 @@ jobs:
 
       - name: Start Chartmuseum
         run: |
-          mkdir /tmp/charts
-
-          docker run --rm -it -d \
-            -p 5010:8080 \
-            -e BASIC_AUTH_USER=${{ matrix.username }} \
-            -e BASIC_AUTH_PASS=${{ matrix.password }} \
-            -e DEBUG=1 \
-            -e STORAGE=local \
-            -e STORAGE_LOCAL_ROOTDIR=/charts \
-            -v $(pwd)/charts:/charts \
-            chartmuseum/chartmuseum:latest
-
           count=0
           while [[ 1 -eq 1 ]]; do
             docker ps -a
             echo "Waiting for Chartmuseum..."
-            if curl -u '${{ matrix.username }}:${{ matrix.password }}' http://localhost:5010/health; then
+            if curl -u '${{ matrix.username }}:${{ matrix.password }}' http://localhost:8080/health; then
               exit 0
             fi
             if [[ $count -gt 20 ]]; then
@@ -121,8 +109,12 @@ jobs:
 
       - name: Test Helm Push
         run: |
-          helm repo add my-chart-test http://localhost:5010 --username ${{ matrix.username }} --password ${{ matrix.password }}
-          helm cm-push ./my-chart-0.1.0.tgz my-chart-test
+          helm repo add my-chart-test http://localhost:8080 --username ${{ matrix.username }} --password ${{ matrix.password }}
+          helm cm-push ./my-chart-0.1.0.tgz my-chart-test || true
+
+          docker logs $(docker ps -a | grep chartmuseum | awk -F' ' '{ print $1 }')
+
+          exit 1
 
       - name: Test artefact Push to ${{ matrix.registry }}
         uses: ./.github/actions/artefact-push
