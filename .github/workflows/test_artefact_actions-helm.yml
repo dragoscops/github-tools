@@ -56,8 +56,8 @@ jobs:
           STORAGE_LOCAL_ROOTDIR: /charts
         ports:
           - 8080:8080
-        # volumes:
-        #   - /tmp/charts:/charts
+        volumes:
+          - /tmp/charts:/charts
         # options: >-
         #   --health-cmd="if ! command -v curl; then apk add curl; fi; curl -f http://localhost:8080/health || exit 1"
         #   --health-interval=5s
@@ -101,6 +101,7 @@ jobs:
 
       - name: Test Helm Push
         run: |
+          sudo chmod 755 /tmp/charts
           helm repo add my-chart-test http://localhost:8080 --username testuser --password testpassword
           helm cm-push ./my-chart-0.1.0.tgz my-chart-test
 
