@@ -1,32 +1,32 @@
-name: artifact-push
-description: Push artifacts to JFROG, S3, and ECR repositories using ORAS CLI
+name: artefact-push
+description: Push artefacts to JFROG, S3, and ECR repositories using ORAS CLI
 branding:
   icon: upload
   color: green
 inputs:
   to:
     description: |
-      Destination URI where the artifact will be pushed.
+      Destination URI where the artefact will be pushed.
       docker:// => docker push
       helm:// => helm push
-      jfrog:// => curl - push to jfrog file artifactory
+      jfrog:// => curl - push to jfrog file artefactory
       oci:// => oras push
       s3:// => aws s3 cp
     required: true
   provider:
     description: |
-      Service to push artifacts to
+      Service to push artefacts to
       - aws =>
       - jfrog =>
       - minio =>
-  artifact:
-    description: "Path to the artifact to be pushed."
+  artefact:
+    description: "Path to the artefact to be pushed."
     required: true
   build:
-    description: "Whether to also build the artifact"
+    description: "Whether to also build the artefact"
     required: false
   version:
-    description: "Version of the artifact to be pushed."
+    description: "Version of the artefact to be pushed."
     required: true
   username:
     description: "Username for the service authentication."
@@ -39,8 +39,8 @@ inputs:
     required: false
 # outputs:
 #   push-status:
-#     description: 'Indicates if the artifact was successfully pushed. "success" or "failure".'
-#     value: ${{ steps.push-artifact.outputs.status }}
+#     description: 'Indicates if the artefact was successfully pushed. "success" or "failure".'
+#     value: ${{ steps.push-artefact.outputs.status }}
 runs:
   using: "composite"
   steps:
@@ -160,7 +160,7 @@ runs:
       if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
       shell: bash
       run: |
-        docker push ${{ steps.detect-values.outputs.destination }}/${{ inputs.artifact }}:${{ inputs.version }}
+        docker push ${{ steps.detect-values.outputs.destination }}/${{ inputs.artefact }}:${{ inputs.version }}
 
     #
     # Handling Helm
@@ -182,7 +182,7 @@ runs:
     # - name: Package Helm Chart
     #   if: ${{ steps.detect-values.outputs.scheme == 'helm' }}
     #   run: |
-    #     helm package ${{ inputs.artifact }} --version ${{ inputs.version }}
+    #     helm package ${{ inputs.artefact }} --version ${{ inputs.version }}
     #     ls -la
 
     - name: Determine Helm Repository Type
@@ -216,13 +216,13 @@ runs:
       if: ${{ inputs.build }}
       shell: bash
       run: |
-        helm package ${{ inputs.artifacts }} --version ${{ inputs.version }}
+        helm package ${{ inputs.artefact }} --version ${{ inputs.version }}
 
     - name: Push Helm Chart to OCI Registry
       if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'true' }}
       shell: bash
       run: |
-        chart_package=$(ls ${{ inputs.artifact }}*.tgz)
+        chart_package=$(ls ${{ inputs.artefact }}*.tgz)
         echo "Chart Package: $chart_package"
         helm push $chart_package ${{ steps.detect-values.outputs.destination }}
 
@@ -230,13 +230,14 @@ runs:
       if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'false' }}
       shell: bash
       run: |
-        helm repo add ${{ inputs.artifact }} ${{ steps.detect-values.outputs.destination }} --username ${{ inputs.username }} --password ${{ inputs.password }}
+        helm repo add ${{ inputs.artefact }} ${{ steps.detect-values.outputs.destination }} --username ${{ inputs.username }} --password ${{ inputs.password }}
 
     - name: Push Helm Chart to Repository
       if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'false' }}
       shell: bash
       run: |
-        chart_package=$(ls *.tgz)
+        chart_package=$(ls ${{ inputs.artefact }}*.tgz)
+        echo "Chart Package: $chart_package"
         helm cm-push $chart_package ${{ steps.detect-values.outputs.destination }}
 
     # - name: Validate Inputs (aws)
@@ -291,48 +292,48 @@ runs:
     #     docker push ${{ steps.detect-values.outputs.destination }}:${{ inputs.version }}
     #     docker push ${{ steps.detect-values.outputs.destination }}:latest || true
     #
-    # - name: Push Artifact (helm)
+    # - name: Push artefact (helm)
     #   if: ${{ steps.detect-values.outputs.scheme == 'helm' }}
     #   shell: bash
     #   run: |
     #     helm registry login -u ${{ inputs.jfrog-user }} -p ${{ inputs.jfrog-pass }} \
     #       ${{ steps.detect-values.outputs.destination }}
     #
-    #     helm push ${{ inputs.artifact }} "oci://${{ steps.detect-values.outputs.destination }}"
+    #     helm push ${{ inputs.artefact }} "oci://${{ steps.detect-values.outputs.destination }}"
     #
-    # - name: Push Artifact (jfrog)
+    # - name: Push artefact (jfrog)
     #   if: ${{ steps.detect-values.outputs.scheme == 'jfrog' }}
     #   env:
     #     ORAS_EXPERIMENTAL: "true"
     #   shell: bash
     #   run: |
-    #     artifact_path="${{ inputs.artifact }}"
-    #     artifact_name=$(basename "$artifact_path")
+    #     artefact_path="${{ inputs.artefact }}"
+    #     artefact_name=$(basename "$artefact_path")
     #
-    #     checksum_path="$artifact_path.sha256"
+    #     checksum_path="$artefact_path.sha256"
     #     checksum_name=$(basename "$checksum_path")
-    #     sha256sum "$artifact_path" | awk '{print $1}' > $checksum_path
+    #     sha256sum "$artefact_path" | awk '{print $1}' > $checksum_path
     #
-    #     echo "Uploading artifact: $artifact_name"
+    #     echo "Uploading artefact: $artefact_name"
     #     curl -SL -u "${{ inputs.jfrog-user }}:${{ inputs.jfrog-pass }}" \
-    #       -T "$artifact_path" \
-    #       "https://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artifact_name"
+    #       -T "$artefact_path" \
+    #       "https://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artefact_name"
     #
     #     echo "Uploading checksum: $checksum_name"
     #     curl -SL -u "${{ inputs.jfrog-user }}:${{ inputs.jfrog-pass }}" \
     #       -T "$checksum_path" \
     #       "https://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$checksum_name"
     #
-    # - name: Push Artifact (s3)
+    # - name: Push artefact (s3)
     #   if: ${{ steps.detect-values.outputs.scheme == 's3' }}
     #   shell: bash
     #   run: |
     #     set -e
-    #     artifact_path="${{ inputs.artifact }}"
-    #     artifact_name=$(basename "$artifact_path")
+    #     artefact_path="${{ inputs.artefact }}"
+    #     artefact_name=$(basename "$artefact_path")
     #     aws s3 cp \
-    #       "$artifact_path" \
-    #       "s3://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artifact_name"
+    #       "$artefact_path" \
+    #       "s3://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artefact_name"
     #
     # - name: Oras Authenticate (oci:ecr)
     #   if: ${{ steps.detect-values.outputs.scheme == 'oci-ecr' }}
@@ -358,7 +359,7 @@ runs:
     #       --username "${{ inputs.jfrog-user }}" \
     #       --password "${{ inputs.jfrog-pass }}"
     #
-    # - name: Push Artifact (oci)
+    # - name: Push artefact (oci)
     #   if: ${{ startsWith(steps.detect-values.outputs.scheme, 'oci-') }}
     #   env:
     #     ORAS_EXPERIMENTAL: "true"
@@ -367,7 +368,7 @@ runs:
     #     oras push \
     #       ${{ steps.detect-values.outputs.destination }}:${{ inputs.version }} \
     #       ${{ inputs.oras-args || '' }} \
-    #       "${{ inputs.artifact }}"
+    #       "${{ inputs.artefact }}"
     #
     # - name: Cleanup Authentication Variables
     #   if: always()

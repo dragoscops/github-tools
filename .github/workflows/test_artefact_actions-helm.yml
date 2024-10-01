@@ -1,4 +1,4 @@
-name: Test Artifact Actions (Helm)
+name: Test artefact Actions (Helm)
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
   pull_request:
 
 jobs:
-  test-artifact-actions:
+  test-artefact-actions:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -101,11 +101,11 @@ jobs:
         run: |
           helm package my-chart --version 0.1.0
 
-      - name: Test Artifact Push to ${{ matrix.registry }}
+      - name: Test artefact Push to ${{ matrix.registry }}
         uses: ./.github/actions/artefact-push
         with:
           to: helm://${{ matrix.registry }}
-          artifact: my-chart
+          artefact: my-chart
           version: 0.1.0
           username: ${{ matrix.username }}
           password: ${{ matrix.password }}
