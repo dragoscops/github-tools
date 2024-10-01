@@ -226,19 +226,19 @@ runs:
         echo "Chart Package: $chart_package"
         helm push $chart_package ${{ steps.detect-values.outputs.destination }}
 
-    - name: Helm Repository Authentication
-      if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'false' }}
-      shell: bash
-      run: |
-        helm repo add ${{ inputs.artefact }} ${{ steps.detect-values.outputs.destination }} --username ${{ inputs.username }} --password ${{ inputs.password }}
-
+    # - name: Helm Repository Authentication
+    #   if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'false' }}
+    #   shell: bash
+    #   run: |
+    #     helm repo add ${{ inputs.artefact }} ${{ steps.detect-values.outputs.destination }} --username ${{ inputs.username }} --password ${{ inputs.password }}
+    #
     - name: Push Helm Chart to Repository
       if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'false' }}
       shell: bash
       run: |
         chart_package=$(ls ${{ inputs.artefact }}*.tgz)
         echo "Chart Package: $chart_package"
-        helm cm-push $chart_package ${{ steps.detect-values.outputs.destination }}
+        helm cm-push $chart_package ${{ steps.detect-values.outputs.destination }} --username ${{ inputs.username }} --password ${{ inputs.password }}
 
     # - name: Validate Inputs (aws)
     #   if: ${{ ! inputs.no-aws-auth && (endsWith(steps.detect-values.outputs.scheme, 'ecr') || steps.detect-values.outputs.scheme == 's3') }}
