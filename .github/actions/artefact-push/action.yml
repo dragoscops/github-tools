@@ -234,7 +234,7 @@ runs:
 
         chart_package=$(ls ${{ inputs.artefact }}*.tgz)
         echo "Chart Package: $chart_package"
-        helm cm-push $chart_package ${{ inputs.artefact }}
+        helm cm-push $chart_package ${{ inputs.artefact }} --force
 
     # - name: Validate Inputs (aws)
     #   if: ${{ ! inputs.no-aws-auth && (endsWith(steps.detect-values.outputs.scheme, 'ecr') || steps.detect-values.outputs.scheme == 's3') }}
