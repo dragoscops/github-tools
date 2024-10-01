@@ -105,9 +105,9 @@ jobs:
         run: |
           docker ps -a
           while [[ 1 -eq 1 ]]; do
+            sleep 10
             echo "Waiting for chartmuseum to start..."
             if curl -u 'testuser:testpassword' http://localhost:8080/health > /dev/null 2>&1 ; then break; fi
-            sleep 5
           done
 
           helm repo add my-chart-test http://localhost:8080 --username testuser --password test-password
