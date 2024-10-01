@@ -77,7 +77,7 @@ jobs:
             docker ps -a
             echo "Waiting for Chartmuseum..."
             if curl -u 'testuser:testpassword' http://localhost:5010/health; then
-              break
+              exit 0
             fi
             if [[ $count -gt 20 ]]; then
               echo "Chartmuseum wait timed out"
