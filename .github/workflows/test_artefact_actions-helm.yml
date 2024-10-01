@@ -46,22 +46,22 @@ jobs:
       #   volumes:
       #     - /tmp/registry/auth:/auth
 
-      chartmuseum:
-        image: chartmuseum/chartmuseum:latest
-        env:
-          BASIC_AUTH_USER: testuser
-          BASIC_AUTH_PASS: testpassword
-          STORAGE: local
-          STORAGE_LOCAL_ROOTDIR: /charts
-        ports:
-          - 8080:8080
-        volumes:
-          - /tmp/charts:/charts
-        # options: >-
-        #   --health-cmd="if ! command -v curl; then apk add curl; fi; curl -f http://localhost:8080/health || exit 1"
-        #   --health-interval=5s
-        #   --health-timeout=5s
-        #   --health-retries=20
+      # chartmuseum:
+      #   image: chartmuseum/chartmuseum:latest
+      #   env:
+      #     BASIC_AUTH_USER: testuser
+      #     BASIC_AUTH_PASS: testpassword
+      #     STORAGE: local
+      #     STORAGE_LOCAL_ROOTDIR: /charts
+      #   ports:
+      #     - 8080:8080
+      #   volumes:
+      #     - /tmp/charts:/charts
+      #   # options: >-
+      #   #   --health-cmd="if ! command -v curl; then apk add curl; fi; curl -f http://localhost:8080/health || exit 1"
+      #   #   --health-interval=5s
+      #   #   --health-timeout=5s
+      #   #   --health-retries=20
 
     steps:
       - name: Checkout Repository
@@ -72,6 +72,14 @@ jobs:
 
       - name: Wait for Chartmuseum
         run: |
+          docker run --rm -it -d \
+            -p 8080:8080 \
+            -e DEBUG=1 \
+            -e STORAGE=local \
+            -e STORAGE_LOCAL_ROOTDIR=/charts \
+            -v /tmp/charts:/charts \
+            chartmuseum/chartmuseum:latest
+
           count=0
           while [[ 1 -eq 1 ]]; do
             docker ps -a
