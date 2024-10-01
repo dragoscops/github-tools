@@ -49,6 +49,7 @@ jobs:
       chartmuseum:
         image: chartmuseum/chartmuseum:latest
         env:
+          DEBUG: 1
           BASIC_AUTH_USER: testuser
           BASIC_AUTH_PASS: testpassword
           STORAGE: local
