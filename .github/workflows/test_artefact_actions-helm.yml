@@ -74,6 +74,7 @@ jobs:
         run: |
           count=0
           while [[ 1 -eq 1 ]]; do
+            docker ps -a
             echo "Waiting for Chartmuseum..."
             if curl -u 'testuser:testpassword' http://localhost:5010/health; then
               break
