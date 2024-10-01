@@ -101,6 +101,11 @@ jobs:
         run: |
           helm package my-chart --version 0.1.0
 
+      - name: Test Helm Push
+        run: |
+          helm repo add my-chart-test http://localhost:8080 --username testuser --password test-password
+          helm cm-push ./my-chart-0.1.0.tgz my-chart-test
+
       - name: Test artefact Push to ${{ matrix.registry }}
         uses: ./.github/actions/artefact-push
         with:
