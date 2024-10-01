@@ -15,7 +15,7 @@ jobs:
           # - registry: oci://localhost:5000/my-helm-charts
           #   username: testuser
           #   password: testpassword
-          - registry: http://localhost:8080
+          - registry: http://localhost:5010
             username: testuser
             password: testpassword
 
@@ -47,19 +47,18 @@ jobs:
       #     - /tmp/registry/auth:/auth
 
       chartmuseum:
-        # image: ghcr.io/helm/chartmuseum:latest
         image: chartmuseum/chartmuseum:latest
         env:
           BASIC_AUTH_USER: testuser
           BASIC_AUTH_PASS: testpassword
-          # STORAGE: local
-          # STORAGE_LOCAL_ROOTDIR: /charts
+          STORAGE: local
+          STORAGE_LOCAL_ROOTDIR: /charts
         ports:
-          - 8080:8080
-        # volumes:
-        #   - /tmp/charts:/charts
+          - 8080:5010
+        volumes:
+          - /tmp/charts:/charts
         # options: >-
-        #   --health-cmd="if ! command -v curl; then apk add curl; fi; curl -f http://localhost:8080/health || exit 1"
+        #   --health-cmd="if ! command -v curl; then apk add curl; fi; curl -f http://localhost:5010/health || exit 1"
         #   --health-interval=5s
         #   --health-timeout=5s
         #   --health-retries=20
@@ -74,7 +73,7 @@ jobs:
       - name: Wait for Chartmuseum
         run: |
           while [[ 1 -eq 1 ]]; do
-            if curl -u 'testuser:testpassword' http://localhost:8080/health; then
+            if curl -u 'testuser:testpassword' http://localhost:5010/health; then
               break
             fi
           done
@@ -101,8 +100,7 @@ jobs:
 
       - name: Test Helm Push
         run: |
-          # sudo chmod 755 /tmp/charts
-          helm repo add my-chart-test http://localhost:8080 --username testuser --password testpassword
+          helm repo add my-chart-test http://localhost:5010 --username testuser --password testpassword
           helm cm-push ./my-chart-0.1.0.tgz my-chart-test
 
       - name: Test artefact Push to ${{ matrix.registry }}
