@@ -104,8 +104,8 @@ jobs:
       - name: Test Helm Push
         run: |
           while [[ 1 -eq 1 ]]; do
-            if curl -u 'testuser:testpassword' http://localhost:8080/health > /dev/null 2>&1 ; then break; fi
             echo "Waiting for chartmuseum to start..."
+            if curl -u 'testuser:testpassword' http://localhost:8080/health > /dev/null 2>&1 ; then break; fi
             sleep 5
           done
 
