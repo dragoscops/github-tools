@@ -113,9 +113,10 @@ jobs:
         if: ${{ startsWith(matrix.registry, 'oci://') }}
         run: |
           registry="${{ matrix.registry }}"
-          registry=${registry/oci:\/\//}
+          registry_host=${registry#oci://}
+          registry_host=${registry_host%%/*}
 
-          helm registry login $registry \
+          helm registry login $registry_host \
             --username ${{ matrix.username }} \
             --password ${{ matrix.password }}
 
