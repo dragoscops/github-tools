@@ -289,7 +289,7 @@ runs:
           --password ${{ matrix.password }}
 
     - name: Push artefact (oci)
-      if: ${{ startsWith(steps.detect-values.outputs.scheme, 'oci-') }}
+      if: ${{ steps.detect-values.outputs.scheme == 'oci' }}
       env:
         ORAS_EXPERIMENTAL: "true"
       shell: bash
