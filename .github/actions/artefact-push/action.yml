@@ -281,9 +281,12 @@ runs:
         ORAS_EXPERIMENTAL: "true"
       shell: bash
       run: |
-        oras login "${{ steps.detect-values.outputs.destination }}" \
-          --username "${{ inputs.username }}" \
-          --password "${{ inputs.password }}"
+        registry="${{ steps.detect-values.outputs.destination }}"
+        registry_host=${registry%%/*}
+
+        oras login $registry_host \
+          --username ${{ matrix.username }} \
+          --password ${{ matrix.password }}
 
     - name: Push artefact (oci)
       if: ${{ startsWith(steps.detect-values.outputs.scheme, 'oci-') }}
@@ -291,9 +294,9 @@ runs:
         ORAS_EXPERIMENTAL: "true"
       shell: bash
       run: |
-        destination='${{ steps.detect-values.outputs.destination }}'
-        domain=${destination/ecr:\/\//}
-        oras push $domain:${{ inputs.version }} ${{ steps.oras-args.outputs.oras_args || '' }} "${{ inputs.artefact }}"
+        registry='${{ steps.detect-values.outputs.destination }}'
+        registry_path=${destination/ecr:\/\//}
+        oras push $registry_path:${{ inputs.version }} ${{ steps.oras-args.outputs.oras_args || '' }} "${{ inputs.artefact }}"
 
     # - name: Push artefact (jfrog)
     #   if: ${{ steps.detect-values.outputs.scheme == 'jfrog' }}
