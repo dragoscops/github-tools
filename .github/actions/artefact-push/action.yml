@@ -92,7 +92,7 @@ runs:
       id: aws-credentials
       shell: bash
       run: |
-        options='${{ inputs.options }}'
+        options="${{ inputs.options }}"
         if [[ -n "$options" ]]; then
           aws_credentials=$(echo "$options" | jq -r '.aws_credentials // null' | jq -c '.')
           if [[ "$aws_credentials" != "null" ]]; then
