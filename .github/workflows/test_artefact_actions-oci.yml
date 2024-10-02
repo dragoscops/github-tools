@@ -63,10 +63,10 @@ jobs:
         if: ${{ ! contains(matrix.registry, 'ecr://') }}
         run: |
           registry="${{ matrix.registry }}"
-          registry_host=${registry#oci://}
-          registry_host=${registry_host%%/*}
+          registry_path=${registry#oci://}
+          registry_host=${registry_path%%/*}
 
-          oras login $registry_host \
+          oras login $registry_path \
             --username ${{ matrix.username }} \
             --password ${{ matrix.password }}
 
