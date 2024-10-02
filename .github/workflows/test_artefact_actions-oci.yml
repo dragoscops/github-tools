@@ -1,4 +1,4 @@
-name: Test Artefact Actions (Helm)
+name: Test Artefact Actions (OCI)
 
 on:
   workflow_dispatch:
