@@ -101,7 +101,7 @@ runs:
         fi
 
     - name: Configure AWS Credentials
-      if: ${{ steps.aws_credentials.outputs.aws_credentials }}
+      if: ${{ steps.aws-credentials.outputs.aws_credentials }}
       uses: aws-actions/configure-aws-credentials@v4
       with: ${{ fromJSON(steps.aws-credentials.outputs.aws_credentials) }}
 
@@ -264,16 +264,16 @@ runs:
         fi
 
     # TODO: not sure ).aws-credentials will work
-    - name: Oras Authenticate (ecr)
-      if: ${{ steps.detect-values.outputs.scheme == 'oci' && startsWith(steps.detect-values.outputs.destination, 'ecr://') }}"
-      env:
-        ORAS_EXPERIMENTAL: "true"
-      shell: bash
-      run: |
-        destination="${{ steps.detect-values.outputs.destination }}"
-        domain=${destination/ecr:\/\//}
-        aws ecr get-login-password --region "${{ fromJSON(steps.aws-credentials.outputs.aws_credentials).aws-region }}" \
-          | oras login --username AWS --password-stdin "$domain"
+    # - name: Oras Authenticate (ecr)
+    #   if: ${{ steps.detect-values.outputs.scheme == 'oci' && startsWith(steps.detect-values.outputs.destination, 'ecr://') }}"
+    #   env:
+    #     ORAS_EXPERIMENTAL: "true"
+    #   shell: bash
+    #   run: |
+    #     destination="${{ steps.detect-values.outputs.destination }}"
+    #     domain=${destination/ecr:\/\//}
+    #     aws ecr get-login-password --region "${{ fromJSON(steps.aws-credentials.outputs.aws_credentials).aws-region }}" \
+    #       | oras login --username AWS --password-stdin "$domain"
 
     - name: Oras Authenticate (oci)
       if: ${{ steps.detect-values.outputs.scheme == 'oci' && ! startsWith(steps.detect-values.outputs.destination, 'ecr://') }}
