@@ -294,9 +294,7 @@ runs:
         ORAS_EXPERIMENTAL: "true"
       shell: bash
       run: |
-        registry='${{ steps.detect-values.outputs.destination }}'
-        registry_path=${destination/ecr:\/\//}
-        oras push $registry_path:${{ inputs.version }} ${{ steps.oras-args.outputs.oras_args || '' }} "${{ inputs.artefact }}"
+        oras push ${{ steps.detect-values.outputs.destination }}:${{ inputs.version }} ${{ steps.oras-args.outputs.oras_args || '' }} "${{ inputs.artefact }}"
 
     # - name: Push artefact (jfrog)
     #   if: ${{ steps.detect-values.outputs.scheme == 'jfrog' }}
