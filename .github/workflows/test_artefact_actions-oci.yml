@@ -66,11 +66,11 @@ jobs:
           registry_path=${registry#oci://}
           registry_host=${registry_path%%/*}
 
-          oras login $registry_path \
+          oras login $registry_host \
             --username ${{ matrix.username }} \
             --password ${{ matrix.password }}
 
-          oras push $registry:0.1.0 ./artefact.txt
+          oras push $registry_path:0.1.0 ./artefact.txt
 
       # - name: Test Helm Push to Chartmuseum
       #   if: ${{ startsWith(matrix.registry, 'http://') }}
