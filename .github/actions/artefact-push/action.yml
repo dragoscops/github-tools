@@ -255,7 +255,7 @@ runs:
       id: oras-args
       shell: bash
       run: |
-        options='${{ inputs.options }}'
+        options="${{ inputs.options }}"
         if [[ -n "$options" ]]; then
           oras_args=$(echo "$options" | jq -r '.oras_args // null' | jq -c '.')
           if [[ "$oras_args" != "null" ]]; then
