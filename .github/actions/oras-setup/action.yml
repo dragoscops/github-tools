@@ -14,11 +14,6 @@ inputs:
   force:
     description: Force installation or upgrade of ORAS even if it is already installed
     required: false
-    default: false
-outputs:
-  oras-installed:
-    description: "Indicates if ORAS was installed or upgraded (1 if installed/upgraded)"
-    value: ${{ steps.oras-install.outputs.oras_installed }}
 runs:
   using: "composite"
   steps:
@@ -46,3 +41,5 @@ runs:
         tar -zxf $tar_file -C oras-install/
         sudo mv oras-install/oras /usr/local/bin/
         rm -rf $tar_file oras-install/
+
+        oras --version
