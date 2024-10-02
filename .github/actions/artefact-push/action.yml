@@ -185,18 +185,6 @@ runs:
     #     helm package ${{ inputs.artefact }} --version ${{ inputs.version }}
     #     ls -la
 
-    - name: Determine Helm Repository Type
-      id: helm-repo-type
-      if: ${{ steps.detect-values.outputs.scheme == 'helm' }}
-      shell: bash
-      run: |
-        destination="${{ steps.detect-values.outputs.destination }}"
-        if [[ "$destination" == oci://* ]]; then
-          echo "oci_repo=true" >> $GITHUB_OUTPUT
-        else
-          echo "oci_repo=false" >> $GITHUB_OUTPUT
-        fi
-
     - name: Package Helm Chart
       if: ${{ inputs.build }}
       shell: bash
@@ -211,7 +199,7 @@ runs:
     # WARNING: Using --password via the CLI is insecure. Use --password-stdin.
     # Error: Get "https://oci/v2/": dial tcp: lookup oci on 127.0.0.53:53: server misbehaving
     - name: Helm Push to OCI
-      if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'true' }}
+      if: ${{ steps.detect-values.outputs.scheme == 'helm' && startsWith(steps.detect-values.outputs.destination, 'oci://') }}
       shell: bash
       run: |
         registry="${{ steps.detect-values.outputs.destination }}"
@@ -226,8 +214,10 @@ runs:
         echo "Chart Package: $chart_package"
         helm push $chart_package $registry
 
+    # TODO: must debug
+    # even though commands appear to be correct and are working localy, with github test workflow, push fails
     - name: Helm Push to HTTP Repository
-      if: ${{ steps.detect-values.outputs.scheme == 'helm' && steps.helm-repo-type.outputs.oci_repo == 'false' }}
+      if: ${{ steps.detect-values.outputs.scheme == 'helm' && startsWith(steps.detect-values.outputs.destination, 'http') }}
       shell: bash
       run: |
         helm repo add ${{ inputs.artefact }} ${{ steps.detect-values.outputs.destination }} --username ${{ inputs.username }} --password ${{ inputs.password }}
