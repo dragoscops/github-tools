@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - registry: oci://localhost:5000/my-helm-charts
+          - registry: oci://localhost:5000/artefact
             username: testuser
             password: testpassword
           # - registry: http://localhost:8080
@@ -48,110 +48,45 @@ jobs:
         volumes:
           - /tmp/registry/auth:/auth
 
-      chartmuseum:
-        image: chartmuseum/chartmuseum:latest
-        env:
-          DEBUG: 1
-          BASIC_AUTH_USER: testuser
-          BASIC_AUTH_PASS: testpassword
-          STORAGE: local
-          STORAGE_LOCAL_ROOTDIR: /charts
-        ports:
-          - 8080:8080
-        volumes:
-          - /tmp/charts:/charts
-        # options: >-
-        #   --health-cmd="if ! command -v curl; then apk add curl; fi; curl -f http://localhost:8080/health || exit 1"
-        #   --health-interval=5s
-        #   --health-timeout=5s
-        #   --health-retries=20
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Install Helm
-        uses: dragoscirjan/github-tools/.github/actions/helm-setup@main
+      - name: Install Oras
+        uses: dragoscirjan/github-tools/.github/actions/helm-oras@main
 
-      - name: Wait for Chartmuseum
-        if: ${{ startsWith(matrix.registry, 'http://') }}
+      - name: Create Artefact
         run: |
-          count=0
-          while [[ 1 -eq 1 ]]; do
-            docker ps -a
-            echo "Waiting for Chartmuseum..."
-            if curl -u '${{ matrix.username }}:${{ matrix.password }}' http://localhost:8080/health; then
-              exit 0
-            fi
-            if [[ $count -gt 20 ]]; then
-              echo "Chartmuseum wait timed out"
-              exit 1
-            fi
-            sleep 5
-            count=$((count + 1))
-          done
+          echo "hello world" > artefact.txt
 
-      - name: Create Minimal Helm Chart
-        run: |
-          mkdir my-chart
-
-          cat <<EOF > my-chart/Chart.yaml
-          apiVersion: v2
-          name: my-chart
-          version: 0.1.0
-          EOF
-
-          mkdir my-chart/templates
-
-          touch my-chart/values.yaml
-
-          helm create my-chart
-
-      - name: Package Helm Chart
-        run: |
-          helm package my-chart --version 0.1.0
-
-      - name: Test Helm Push to OCI
-        if: ${{ startsWith(matrix.registry, 'oci://') }}
+      - name: Test Oras Push to OCI
+        if: ${{ ! contains(matrix.registry, 'ecr://') }}
         run: |
           registry="${{ matrix.registry }}"
           registry_host=${registry#oci://}
           registry_host=${registry_host%%/*}
 
-          helm registry login $registry_host \
+          oras login $registry_host \
             --username ${{ matrix.username }} \
             --password ${{ matrix.password }}
 
-          helm push ./my-chart-0.1.0.tgz $registry
+          oras push $registry:0.1.0 ./artefact.txt
 
-      - name: Test Helm Push to Chartmuseum
-        if: ${{ startsWith(matrix.registry, 'http://') }}
-        run: |
-          helm repo add my-chart-test ${{ matrix.repository }} --username ${{ matrix.username }} --password ${{ matrix.password }}
-          helm cm-push ./my-chart-0.1.0.tgz my-chart-test || true
-
-          docker logs $(docker ps -a | grep chartmuseum | awk -F' ' '{ print $1 }')
-
-          exit 1
-
-      - name: Test artefact Push to ${{ matrix.registry }}
-        uses: ./.github/actions/artefact-push
-        with:
-          to: helm://${{ matrix.registry }}
-          artefact: my-chart
-          version: 0.1.0
-          username: ${{ matrix.username }}
-          password: ${{ matrix.password }}
-
-      # - name: Verify Helm Chart in ${{ matrix.registry }}
-      #   if: ${{ matrix.oci_repo }}
+      # - name: Test Helm Push to Chartmuseum
+      #   if: ${{ startsWith(matrix.registry, 'http://') }}
       #   run: |
-      #     helm registry login localhost:5000 --username ${{ matrix.username }} --password ${{ matrix.password }}
-      #     helm chart list localhost:5000/my-helm-charts
-
-      # - name: Verify Helm Chart in ${{ matrix.registry }}
-      #   if: ${{ !matrix.oci_repo }}
-      #   run: |
-      #     helm repo add my-repo ${{ matrix.registry }} --username ${{ matrix.username }} --password ${{ matrix.password }}
-      #     helm repo update
-      #     helm search repo my-repo
+      #     helm repo add my-chart-test ${{ matrix.repository }} --username ${{ matrix.username }} --password ${{ matrix.password }}
+      #     helm cm-push ./my-chart-0.1.0.tgz my-chart-test || true
+      #
+      #     docker logs $(docker ps -a | grep chartmuseum | awk -F' ' '{ print $1 }')
+      #
+      #     exit 1
+      #
+      # - name: Test artefact Push to ${{ matrix.registry }}
+      #   uses: ./.github/actions/artefact-push
+      #   with:
+      #     to: helm://${{ matrix.registry }}
+      #     artefact: my-chart
+      #     version: 0.1.0
+      #     username: ${{ matrix.username }}
+      #     password: ${{ matrix.password }}

@@ -55,8 +55,8 @@ runs:
         schemes=(
           "docker"
           "helm"
+          "oci"
           # "jfrog"
-          # "oci"
           # "s3"
         )
         found=0
@@ -85,12 +85,33 @@ runs:
         echo "destination=${destination}" >> $GITHUB_OUTPUT
 
     #
+    # Handling AWS Session
+    #
+
+    - name: Handling AWS Credentials
+      id: aws-credentials
+      shell: bash
+      run: |
+        options='${{ inputs.options }}'
+        if [[ -n "$options" ]]; then
+          aws_credentials=$(echo "$options" | jq -r '.aws_credentials // null' | jq -c '.')
+          if [[ "$aws_credentials" != "null" ]]; then
+            echo "aws_credentials=$aws_credentials" >> $GITHUB_OUTPUT
+          fi
+        fi
+
+    - name: Configure AWS Credentials
+      if: ${{ steps.aws_credentials.outputs.aws_credentials }}
+      uses: aws-actions/configure-aws-credentials@v4
+      with: ${{ fromJSON(steps.aws-credentials.outputs.aws_credentials) }}
+
+    #
     # Handling Docker
     # https://github.com/docker/login-action
     # https://github.com/docker/build-push-action
-    # TODO: integrate the build & push action; so far pushing is good enough
     #
 
+    # TODO: must handle it the same way as aws actions
     - name: Override docker/login-action@v3 arguments
       id: docker-login-action
       if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
@@ -156,8 +177,15 @@ runs:
     #     echo "with=$options_with" >> $GITHUB_OUTPUT
     #     echo "env=$options_env" >> $GITHUB_OUTPUT
 
+    # TODO: integrate the build & push action; so far pushing is good enough
+    # - name: Build & Push to Docker Registry
+    #   if: ${{ steps.detect-values.outputs.scheme == 'docker' && inputs.build }}
+    #   shell: bash
+    #   run: |
+    #     helm package ${{ inputs.artefact }} --version ${{ inputs.version }}
+
     - name: Push to Docker Registry
-      if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
+      if: ${{ steps.detect-values.outputs.scheme == 'docker' && ! inputs.build }}
       shell: bash
       run: |
         docker push ${{ steps.detect-values.outputs.destination }}/${{ inputs.artefact }}:${{ inputs.version }}
@@ -168,36 +196,23 @@ runs:
     # TODO: integrate with non oci repositories; so far OCI is good enough
     #
 
-    - name: Install Helm
+    - name: Ensure Helm's Presence
       if: ${{ steps.detect-values.outputs.scheme == 'helm' }}
       uses: dragoscirjan/github-tools/.github/actions/helm-setup@main
 
     - name: Helm Authentication Required
-      if: ${{ ! inputs.username || ! inputs.password }}
+      if: ${{ steps.detect-values.outputs.scheme == 'helm' && ( ! inputs.username || ! inputs.password ) }}
       shell: bash
       run: |
         echo "Helm authentication required"
         exit 1
 
-    # - name: Package Helm Chart
-    #   if: ${{ steps.detect-values.outputs.scheme == 'helm' }}
-    #   run: |
-    #     helm package ${{ inputs.artefact }} --version ${{ inputs.version }}
-    #     ls -la
-
     - name: Package Helm Chart
-      if: ${{ inputs.build }}
+      if: ${{ steps.detect-values.outputs.scheme == 'helm' && inputs.build }}
       shell: bash
       run: |
         helm package ${{ inputs.artefact }} --version ${{ inputs.version }}
 
-    # TODO: error with registry:2...
-    # helm registry login oci://localhost:5000/my-helm-charts \
-    #   --username testuser \
-    #   --password testpassword
-    # shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
-    # WARNING: Using --password via the CLI is insecure. Use --password-stdin.
-    # Error: Get "https://oci/v2/": dial tcp: lookup oci on 127.0.0.53:53: server misbehaving
     - name: Helm Push to OCI
       if: ${{ steps.detect-values.outputs.scheme == 'helm' && startsWith(steps.detect-values.outputs.destination, 'oci://') }}
       shell: bash
@@ -226,67 +241,60 @@ runs:
         echo "Chart Package: $chart_package"
         helm cm-push $chart_package ${{ inputs.artefact }} --force
 
-    # - name: Validate Inputs (aws)
-    #   if: ${{ ! inputs.no-aws-auth && (endsWith(steps.detect-values.outputs.scheme, 'ecr') || steps.detect-values.outputs.scheme == 's3') }}
-    #   shell: bash
-    #   run: |
-    #     if [[ -z "${{ inputs.aws-access-key-id }}" || -z "${{ inputs.aws-secret-access-key }}" || -z "${{ inputs.aws-region }}" ]]; then
-    #       echo "Error: 'aws-access-key-id', 'aws-secret-access-key', and 'aws-region' are required for S3 and ECR push."
-    #       exit 1
-    #     fi
     #
-    # - name: Validate Inputs (jfrog)
-    #   if: ${{ contains(steps.detect-values.outputs.scheme, 'jfrog') || steps.detect-values.outputs.scheme == 'helm' || steps.detect-values.outputs.scheme == 'docker' }}
-    #   shell: bash
-    #   run: |
-    #     if [[ -z "${{ inputs.jfrog-user }}" || -z "${{ inputs.jfrog-pass }}" ]]; then
-    #       echo "Error: 'jfrog-user', and 'jfrog-pass' are required for JFROG push."
-    #       exit 1
-    #     fi
+    # Handling OCI
+    # https://opencontainers.org/
+    # https://oras.land/
     #
-    # - name: Configure AWS Credentials for S3 and ECR
-    #   id: configure-aws
-    #   if: ${{ ! inputs.no-aws-auth &&
-    #     ( steps.detect-values.outputs.scheme == 's3' ||
-    #     endsWith(steps.detect-values.outputs.scheme, '-ecr') ) }}
-    #   uses: aws-actions/configure-aws-credentials@v2
-    #   with:
-    #     aws-access-key-id: ${{ inputs.aws-access-key-id }}
-    #     aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
-    #     aws-region: ${{ inputs.aws-region }}
-    #
-    # - name: Docker Authenticate (standard)
-    #   if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
-    #   shell: bash
-    #   run: |
-    #     docker login -u ${{ inputs.jfrog-user }} -p ${{ inputs.jfrog-pass }} ${{ inputs.jfrog-url }}
-    #
-    # - name: Docker Authenticate (aws)
-    #   if: ${{ steps.detect-values.outputs.scheme == 'docker-ecr' }}
-    #   shell: bash
-    #   run: |
-    #     destination="${{ steps.detect-values.outputs.destination }}"
-    #     region=$(echo "$destination" | awk -F'.' '{print $4}')
-    #     domain=$(echo "$destination" | awk -F'/' '{print $1}')
-    #     aws ecr get-login-password --region "$region" \
-    #       | docker login --username AWS --password-stdin "$domain"
-    #
-    # - name: Docker push
-    #   if: ${{ startsWith(steps.detect-values.outputs.scheme, 'docker') }}
-    #   shell: bash
-    #   run: |
-    #     docker push ${{ steps.detect-values.outputs.destination }}:${{ inputs.version }}
-    #     docker push ${{ steps.detect-values.outputs.destination }}:latest || true
-    #
-    # - name: Push artefact (helm)
-    #   if: ${{ steps.detect-values.outputs.scheme == 'helm' }}
-    #   shell: bash
-    #   run: |
-    #     helm registry login -u ${{ inputs.jfrog-user }} -p ${{ inputs.jfrog-pass }} \
-    #       ${{ steps.detect-values.outputs.destination }}
-    #
-    #     helm push ${{ inputs.artefact }} "oci://${{ steps.detect-values.outputs.destination }}"
-    #
+
+    - name: Ensure Oras's Presence
+      if: ${{ steps.detect-values.outputs.scheme == 'oci' }}
+      uses: dragoscirjan/github-tools/.github/actions/oras-setup@main
+
+    - name: Handling Oras's Arguments
+      id: oras-args
+      shell: bash
+      run: |
+        options='${{ inputs.options }}'
+        if [[ -n "$options" ]]; then
+          oras_args=$(echo "$options" | jq -r '.oras_args // null' | jq -c '.')
+          if [[ "$oras_args" != "null" ]]; then
+            echo "oras_args=$oras_args" >> $GITHUB_OUTPUT
+          fi
+        fi
+
+    # TODO: not sure ).aws-credentials will work
+    - name: Oras Authenticate (ecr)
+      if: ${{ steps.detect-values.outputs.scheme == 'oci' && startsWith(steps.detect-values.outputs.destination, 'ecr://') }}"
+      env:
+        ORAS_EXPERIMENTAL: "true"
+      shell: bash
+      run: |
+        destination="${{ steps.detect-values.outputs.destination }}"
+        domain=${destination/ecr:\/\//}
+        aws ecr get-login-password --region "${{ fromJSON(steps.aws-credentials.outputs.aws_credentials).aws-region }}" \
+          | oras login --username AWS --password-stdin "$domain"
+
+    - name: Oras Authenticate (oci)
+      if: ${{ steps.detect-values.outputs.scheme == 'oci' && ! startsWith(steps.detect-values.outputs.destination, 'ecr://') }}
+      env:
+        ORAS_EXPERIMENTAL: "true"
+      shell: bash
+      run: |
+        oras login "${{ steps.detect-values.outputs.destination }}" \
+          --username "${{ inputs.username }}" \
+          --password "${{ inputs.password }}"
+
+    - name: Push artefact (oci)
+      if: ${{ startsWith(steps.detect-values.outputs.scheme, 'oci-') }}
+      env:
+        ORAS_EXPERIMENTAL: "true"
+      shell: bash
+      run: |
+        destination='${{ steps.detect-values.outputs.destination }}'
+        domain=${destination/ecr:\/\//}
+        oras push $domain:${{ inputs.version }} ${{ steps.oras-args.outputs.oras_args || '' }} "${{ inputs.artefact }}"
+
     # - name: Push artefact (jfrog)
     #   if: ${{ steps.detect-values.outputs.scheme == 'jfrog' }}
     #   env:
@@ -321,40 +329,6 @@ runs:
     #       "$artefact_path" \
     #       "s3://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artefact_name"
     #
-    # - name: Oras Authenticate (oci:ecr)
-    #   if: ${{ steps.detect-values.outputs.scheme == 'oci-ecr' }}
-    #   env:
-    #     ORAS_EXPERIMENTAL: "true"
-    #   shell: bash
-    #   run: |
-    #     destination="${{ steps.detect-values.outputs.destination }}"
-    #     region=$(echo "$destination" | awk -F'.' '{print $4}')
-    #     domain=$(echo "$destination" | awk -F'/' '{print $1}')
-    #     aws ecr get-login-password --region "$region" \
-    #       | oras login --username AWS --password-stdin "$domain"
-    #
-    # - name: Oras Authenticate (oci:jfrog)
-    #   if: ${{ steps.detect-values.outputs.scheme == 'oci-jfrog' }}
-    #   env:
-    #     ORAS_EXPERIMENTAL: "true"
-    #   shell: bash
-    #   run: |
-    #     destination="${{ steps.detect-values.outputs.destination }}"
-    #     destination=$(echo $destination | awk -F'/' '{print $1}')
-    #     oras login "$destination" \
-    #       --username "${{ inputs.jfrog-user }}" \
-    #       --password "${{ inputs.jfrog-pass }}"
-    #
-    # - name: Push artefact (oci)
-    #   if: ${{ startsWith(steps.detect-values.outputs.scheme, 'oci-') }}
-    #   env:
-    #     ORAS_EXPERIMENTAL: "true"
-    #   shell: bash
-    #   run: |
-    #     oras push \
-    #       ${{ steps.detect-values.outputs.destination }}:${{ inputs.version }} \
-    #       ${{ inputs.oras-args || '' }} \
-    #       "${{ inputs.artefact }}"
     #
     # - name: Cleanup Authentication Variables
     #   if: always()
