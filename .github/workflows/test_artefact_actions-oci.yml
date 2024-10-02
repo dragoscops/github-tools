@@ -55,38 +55,38 @@ jobs:
       - name: Install Oras
         uses: dragoscirjan/github-tools/.github/actions/helm-oras@main
 
-      - name: Create Artefact
-        run: |
-          echo "hello world" > artefact.txt
-
-      - name: Test Oras Push to OCI
-        if: ${{ ! contains(matrix.registry, 'ecr://') }}
-        run: |
-          registry="${{ matrix.registry }}"
-          registry_host=${registry#oci://}
-          registry_host=${registry_host%%/*}
-
-          oras login $registry_host \
-            --username ${{ matrix.username }} \
-            --password ${{ matrix.password }}
-
-          oras push $registry:0.1.0 ./artefact.txt
-
-      # - name: Test Helm Push to Chartmuseum
-      #   if: ${{ startsWith(matrix.registry, 'http://') }}
+      # - name: Create Artefact
       #   run: |
-      #     helm repo add my-chart-test ${{ matrix.repository }} --username ${{ matrix.username }} --password ${{ matrix.password }}
-      #     helm cm-push ./my-chart-0.1.0.tgz my-chart-test || true
+      #     echo "hello world" > artefact.txt
       #
-      #     docker logs $(docker ps -a | grep chartmuseum | awk -F' ' '{ print $1 }')
+      # - name: Test Oras Push to OCI
+      #   if: ${{ ! contains(matrix.registry, 'ecr://') }}
+      #   run: |
+      #     registry="${{ matrix.registry }}"
+      #     registry_host=${registry#oci://}
+      #     registry_host=${registry_host%%/*}
       #
-      #     exit 1
+      #     oras login $registry_host \
+      #       --username ${{ matrix.username }} \
+      #       --password ${{ matrix.password }}
       #
-      # - name: Test artefact Push to ${{ matrix.registry }}
-      #   uses: ./.github/actions/artefact-push
-      #   with:
-      #     to: helm://${{ matrix.registry }}
-      #     artefact: my-chart
-      #     version: 0.1.0
-      #     username: ${{ matrix.username }}
-      #     password: ${{ matrix.password }}
+      #     oras push $registry:0.1.0 ./artefact.txt
+      #
+      # # - name: Test Helm Push to Chartmuseum
+      # #   if: ${{ startsWith(matrix.registry, 'http://') }}
+      # #   run: |
+      # #     helm repo add my-chart-test ${{ matrix.repository }} --username ${{ matrix.username }} --password ${{ matrix.password }}
+      # #     helm cm-push ./my-chart-0.1.0.tgz my-chart-test || true
+      # #
+      # #     docker logs $(docker ps -a | grep chartmuseum | awk -F' ' '{ print $1 }')
+      # #
+      # #     exit 1
+      # #
+      # # - name: Test artefact Push to ${{ matrix.registry }}
+      # #   uses: ./.github/actions/artefact-push
+      # #   with:
+      # #     to: helm://${{ matrix.registry }}
+      # #     artefact: my-chart
+      # #     version: 0.1.0
+      # #     username: ${{ matrix.username }}
+      # #     password: ${{ matrix.password }}

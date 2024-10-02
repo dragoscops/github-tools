@@ -8,9 +8,6 @@ inputs:
     description: Version of the official ORAS CLI to install
     required: false
     default: 1.2.0
-  url:
-    description: URL of the customized ORAS CLI to install. Required if 'checksum' is present.
-    required: false
   checksum:
     description: SHA256 of the customized ORAS CLI. Required if 'url' is present.
     required: false
@@ -25,91 +22,27 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Test Oras Presence
-      id: oras-test
+    - name: Install Oras
       shell: bash
       run: |
-        if ! command -v oras &> /dev/null; then
-          echo "oras_installed=1" >> $GITHUB_OUTPUT
-        else
-          echo "oras_installed=0" >> $GITHUB_OUTPUT
+        install_oras=0
+        if command -v oras; then install_oras=1; fi
+        if [[ -n "${{ inputs.force }}" ]]; then install_oras=0; fi
+
+        tar_file=oras_${{ inputs.version }}_linux_amd64.tar.gz
+        github_url="https://github.com/oras-project/oras/releases/download"
+
+        curl -sL "${github_url}/v${{ inputs.version }}/${tar_file}" -o ./$tar_file
+        curl -sL "${github_url}/v${{ inputs.version }}/oras_${{ inputs.version }}_checksums.txt" -o ./checksums.txt
+
+        oras_checksum=$(cat checksums.txt | grep $tar_file | awk '{print $1}')
+
+        if [[ ! "$(cat ./$tar_file | sha256sum)" != "$oras_checksum" ]]; then
+          echo "Oras checksum not matching ..."
+          exit 1
         fi
 
-    - name: Determine if Installation is Needed
-      id: determine-install
-      shell: bash
-      run: |
-        FORCE_INSTALL=${{ inputs.force }}
-        ORAS_PRESENT=${{ steps.oras-test.outputs.oras_installed }}
-
-        if [[ "${FORCE_INSTALL}" == "true" ]]; then
-          echo "install_required=1" >> $GITHUB_OUTPUT
-        elif [[ "${ORAS_PRESENT}" == "1" ]]; then
-          echo "install_required=1" >> $GITHUB_OUTPUT
-        else
-          echo "install_required=0" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Detect Oras Download URL and Checksum
-      id: oras-url
-      if: ${{ steps.determine-install.outputs.install_required == "1" }}
-      shell: bash
-      run: |
-        ORAS_VERSION=${{ inputs.version }}
-
-        if [[ -n "${{ inputs.url }}" && -n "${{ inputs.checksum }}" ]]; then
-          # Use custom URL and checksum provided via inputs
-          echo "oras_url=${{ inputs.url }}" >> $GITHUB_OUTPUT
-          echo "oras_checksum=${{ inputs.checksum }}" >> $GITHUB_OUTPUT
-        else
-          # Use default URL and retrieve checksum from checksum file
-          DEFAULT_URL="https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
-          DEFAULT_CHECKSUM_URL="https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_checksums.txt"
-
-          echo "oras_url=${DEFAULT_URL}" >> $GITHUB_OUTPUT
-
-          # Download and extract the checksum for the ORAS binary
-          curl -sL "${DEFAULT_CHECKSUM_URL}" -o checksums.txt
-          ORAS_CHECKSUM=$(grep "oras_${ORAS_VERSION}_linux_amd64.tar.gz" checksums.txt | awk '{print $1}')
-
-          if [[ -z "${ORAS_CHECKSUM}" ]]; then
-            echo "Error: Checksum for ORAS version ${ORAS_VERSION} not found."
-            exit 1
-          fi
-
-          echo "oras_checksum=${ORAS_CHECKSUM}" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Install or Upgrade ORAS
-      id: oras-install
-      if: ${{ steps.determine-install.outputs.install_required == "1" }}
-      shell: bash
-      run: |
-        ORAS_URL="${{ steps.oras-url.outputs.oras_url }}"
-        ORAS_CHECKSUM="${{ steps.oras-url.outputs.oras_checksum }}"
-
-        echo "Downloading ORAS from ${ORAS_URL}"
-        curl -LO "${ORAS_URL}"
-
-        # Extract the tar.gz file
-        tar -xzf "$(basename "${ORAS_URL}")"
-
-        # Verify the checksum
-        echo "${ORAS_CHECKSUM}  oras" | sha256sum -c -
-
-        # Move the binary to /usr/local/bin
-        chmod +x oras
-        sudo mv oras /usr/local/bin/
-
-        # Verify installation
-        oras --version
-
-        # Indicate that ORAS was installed/upgraded
-        echo "oras_installed=1" >> $GITHUB_OUTPUT
-
-    - name: Clean Up
-      if: ${{ steps.determine-install.outputs.install_required == "1" }}
-      shell: bash
-      run: |
-        # Remove downloaded files
-        rm -f "$(basename "${{ steps.oras-url.outputs.oras_url }}")" checksums.txt
+        mkdir -p oras-install/
+        tar -zxf $tar_file -C oras-install/
+        sudo mv oras-install/oras /usr/local/bin/
+        rm -rf $tar_file oras-install/
