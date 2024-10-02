@@ -42,4 +42,4 @@ runs:
         sudo mv oras-install/oras /usr/local/bin/
         rm -rf $tar_file oras-install/
 
-        oras --version
+        oras version
