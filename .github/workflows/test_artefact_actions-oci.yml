@@ -76,7 +76,7 @@ jobs:
         uses: ./.github/actions/artefact-push
         with:
           to: ${{ matrix.registry }}
-          artefact: artefact
+          artefact: artefact.txt
           version: 0.1.0
           username: ${{ matrix.username }}
           password: ${{ matrix.password }}
