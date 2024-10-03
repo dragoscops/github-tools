@@ -38,7 +38,6 @@ jobs:
           echo "hello world" > artefact.txt
 
       - name: Test aws s3 cp
-        if: ${{ startsWith(matrix.registry, 's3://') }}
         run: |
           # set credentials
           aws configure set aws_access_key_id minioadmin
