@@ -337,7 +337,7 @@ runs:
       run: |
         options="${{ inputs.options }}"
         if [[ -n "$options" ]]; then
-          aws_args=$(echo "$options" | jq -r '.aws_args // null' | jq -c '.')
+          aws_args=$(echo "$options" | jq -r '.awscli_args // null' | jq -c '.')
           if [[ "$aws_args" != "null" ]]; then
             echo "aws_args=$aws_args" >> $GITHUB_OUTPUT
           fi
