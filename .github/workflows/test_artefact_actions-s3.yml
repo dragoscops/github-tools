@@ -63,7 +63,7 @@ jobs:
             {
               "aws_credentials": {
                 "aws-access-key-id": "minioadmin",
-                "aws-secret-acess-key": "minioadmin"
+                "aws-secret-access-key": "minioadmin"
               },
               "awscli_args": "--endpoint-url http://localhost:9000"
             }
