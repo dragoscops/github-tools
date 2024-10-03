@@ -11,20 +11,6 @@ on:
 jobs:
   test-artefact-actions:
     runs-on: ubuntu-latest
-    # services:
-    #   minio:
-    #     image: minio/minio:latest
-    #     ports:
-    #       - 9000:9000
-    #     env:
-    #       MINIO_ROOT_USER: minioadmin
-    #       MINIO_ROOT_PASSWORD: minioadmin
-    #     options: >-
-    #       --health-cmd "curl --fail http://localhost:9000/minio/health/live || exit 1"
-    #       --health-interval 10s
-    #       --health-timeout 5s
-    #       --health-retries 3
-    #       --entrypoint "minio server /data"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -47,23 +33,25 @@ jobs:
       - name: Install AWS Cli
         uses: dragoscirjan/github-tools/.github/actions/awscli-setup@main
 
-      # - name: Create Artefact
-      #   run: |
-      #     echo "hello world" > artefact.txt
-      #
-      # - name: Test Oras Push to ${{ matrix.registry }}-test
-      #   if: ${{ ! contains(matrix.registry, 'ecr://') }}
-      #   run: |
-      #     registry="${{ matrix.registry }}-test"
-      #     registry_path=${registry#oci://}
-      #     registry_host=${registry_path%%/*}
-      #
-      #     oras login $registry_host \
-      #       --username ${{ matrix.username }} \
-      #       --password ${{ matrix.password }}
-      #
-      #     oras push $registry_path:0.1.0 ./artefact.txt
-      #
+      - name: Create Artefact
+        run: |
+          echo "hello world" > artefact.txt
+
+      - name: Test aws s3 cp
+        if: ${{ startsWith(matrix.registry, 's3://') }}
+        run: |
+          # set credentials
+          aws configure set aws_access_key_id minioadmin
+          aws configure set aws_secret_access_key minioadmin
+          aws configure set default.region us-east-1
+          aws configure set default.s3.endpoint_url http://localhost:9000
+          # create s3 bucket
+          aws s3 mb s3://artetact-bucket-test --endpoint-url http://localhost:9000
+          # copy artefact to bucket
+          aws s3 cp artefact.txt s3://artefact-test/artefact.txt --endpoint-url http://localhost:9000
+          # list artefacts
+          aws s3 ls s3://artefact-test/ --endpoint-url http://localhost:9000
+
       # - name: Test Artefact Push to ${{ matrix.registry }}
       #   uses: ./.github/actions/artefact-push
       #   with:
