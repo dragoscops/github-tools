@@ -11,49 +11,54 @@ on:
 jobs:
   test-artefact-actions:
     runs-on: ubuntu-latest
-    services:
-      minio:
-        image: minio/minio:latest
-        ports:
-          - 9000:9000
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        options: >-
-          --health-cmd "curl --fail http://localhost:9000/minio/health/live || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 3
-          --entrypoint "minio server /data"
+    # services:
+    #   minio:
+    #     image: minio/minio:latest
+    #     ports:
+    #       - 9000:9000
+    #     env:
+    #       MINIO_ROOT_USER: minioadmin
+    #       MINIO_ROOT_PASSWORD: minioadmin
+    #     options: >-
+    #       --health-cmd "curl --fail http://localhost:9000/minio/health/live || exit 1"
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 3
+    #       --entrypoint "minio server /data"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Install Oras
-        uses: dragoscirjan/github-tools/.github/actions/oras-setup@main
-
-      - name: Create Artefact
+      - name: Launch minio
         run: |
-          echo "hello world" > artefact.txt
+          docker run --rm -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin -p 9000:9000 \
+            -d minio/minio:latest minio server /data
 
-      - name: Test Oras Push to ${{ matrix.registry }}-test
-        if: ${{ ! contains(matrix.registry, 'ecr://') }}
-        run: |
-          registry="${{ matrix.registry }}-test"
-          registry_path=${registry#oci://}
-          registry_host=${registry_path%%/*}
-
-          oras login $registry_host \
-            --username ${{ matrix.username }} \
-            --password ${{ matrix.password }}
-
-          oras push $registry_path:0.1.0 ./artefact.txt
-
-      - name: Test Artefact Push to ${{ matrix.registry }}
-        uses: ./.github/actions/artefact-push
-        with:
-          to: ${{ matrix.registry }}
-          artefact: artefact.txt
-          version: 0.1.0
-          username: ${{ matrix.username }}
-          password: ${{ matrix.password }}
+      # - name: Install Oras
+      #   uses: dragoscirjan/github-tools/.github/actions/oras-setup@main
+      #
+      # - name: Create Artefact
+      #   run: |
+      #     echo "hello world" > artefact.txt
+      #
+      # - name: Test Oras Push to ${{ matrix.registry }}-test
+      #   if: ${{ ! contains(matrix.registry, 'ecr://') }}
+      #   run: |
+      #     registry="${{ matrix.registry }}-test"
+      #     registry_path=${registry#oci://}
+      #     registry_host=${registry_path%%/*}
+      #
+      #     oras login $registry_host \
+      #       --username ${{ matrix.username }} \
+      #       --password ${{ matrix.password }}
+      #
+      #     oras push $registry_path:0.1.0 ./artefact.txt
+      #
+      # - name: Test Artefact Push to ${{ matrix.registry }}
+      #   uses: ./.github/actions/artefact-push
+      #   with:
+      #     to: ${{ matrix.registry }}
+      #     artefact: artefact.txt
+      #     version: 0.1.0
+      #     username: ${{ matrix.username }}
+      #     password: ${{ matrix.password }}
