@@ -29,10 +29,20 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Launch minio
+      - name: Launch MinIO
         run: |
           docker run --rm -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin -p 9000:9000 \
             -d minio/minio:latest minio server /data
+
+      - name: Wait for MinIO to be ready
+        run: |
+          for i in {1..30}; do
+            curl -s http://localhost:9000/minio/health/live && echo "MinIO is ready" && exit 0
+            echo "Waiting for MinIO..."
+            sleep 5
+          done
+          echo "MinIO did not become ready in time"
+          exit 1
 
       # - name: Install Oras
       #   uses: dragoscirjan/github-tools/.github/actions/oras-setup@main
