@@ -24,7 +24,10 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
-        command: server /data
+        # command: server /data
+        args:
+          - server
+          - /data
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
