@@ -92,7 +92,7 @@ runs:
       id: aws-credentials
       shell: bash
       run: |
-        options="${{ inputs.options }}"
+        options='${{ inputs.options }}'
         if [[ -n "$options" ]]; then
           aws_credentials=$(echo "$options" | jq -r '.aws_credentials // null' | jq -c '.')
           if [[ "$aws_credentials" != "null" ]]; then
@@ -282,7 +282,7 @@ runs:
       id: oras-args
       shell: bash
       run: |
-        options="${{ inputs.options }}"
+        options='${{ inputs.options }}'
         if [[ -n "$options" ]]; then
           oras_args=$(echo "$options" | jq -r '.oras_args // null' | jq -c '.')
           if [[ "$oras_args" != "null" ]]; then
@@ -335,7 +335,7 @@ runs:
       id: aws-args
       shell: bash
       run: |
-        options="${{ inputs.options }}"
+        options='${{ inputs.options }}'
         if [[ -n "$options" ]]; then
           aws_args=$(echo "$options" | jq -r '.awscli_args // null' | jq -c '.')
           if [[ "$aws_args" != "null" ]]; then
