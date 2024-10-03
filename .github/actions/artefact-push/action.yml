@@ -54,9 +54,10 @@ runs:
         # Check if 'to' starts with a supported scheme
         schemes=(
           "docker"
+          "jfrog"
           "helm"
           "oci"
-          # "jfrog"
+
           # "s3"
         )
         found=0
@@ -242,6 +243,33 @@ runs:
         helm cm-push $chart_package ${{ inputs.artefact }} --force
 
     #
+    # Handling JFroG Generic Repositories
+    # https://jfrog.com/help/r/jfrog-artifactory-documentation/generic-repositories
+    #
+
+    - name: Push artefact (jfrog)
+      if: ${{ steps.detect-values.outputs.scheme == 'jfrog' }}
+      env:
+        ORAS_EXPERIMENTAL: "true"
+      shell: bash
+      run: |
+        artefact_path="${{ inputs.artefact }}"
+        artefact_name=$(basename "$artefact_path")
+
+        checksum_path="$artefact_path.sha256"
+        checksum_name=$(basename "$checksum_path")
+        sha256sum "$artefact_path" | awk '{print $1}' > $checksum_path
+
+        echo "Uploading artefact: $artefact_name"
+        curl -SL -u "${{ inputs.username }}:${{ inputs.password }}" \
+          -T "$artefact_path" \
+          "https://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artefact_name"
+
+        echo "Uploading checksum: $checksum_name"
+        curl -SL -u "${{ inputs.username }}:${{ inputs.password }}" \
+          -T "$checksum_path" \
+          "https://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$checksum_name"
+    #
     # Handling OCI
     # https://opencontainers.org/
     # https://oras.land/
@@ -296,47 +324,20 @@ runs:
       run: |
         oras push ${{ steps.detect-values.outputs.destination }}:${{ inputs.version }} ${{ steps.oras-args.outputs.oras_args || '' }} "${{ inputs.artefact }}"
 
-    # - name: Push artefact (jfrog)
-    #   if: ${{ steps.detect-values.outputs.scheme == 'jfrog' }}
-    #   env:
-    #     ORAS_EXPERIMENTAL: "true"
-    #   shell: bash
-    #   run: |
-    #     artefact_path="${{ inputs.artefact }}"
-    #     artefact_name=$(basename "$artefact_path")
     #
-    #     checksum_path="$artefact_path.sha256"
-    #     checksum_name=$(basename "$checksum_path")
-    #     sha256sum "$artefact_path" | awk '{print $1}' > $checksum_path
+    # Handle S3
     #
-    #     echo "Uploading artefact: $artefact_name"
-    #     curl -SL -u "${{ inputs.jfrog-user }}:${{ inputs.jfrog-pass }}" \
-    #       -T "$artefact_path" \
-    #       "https://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artefact_name"
-    #
-    #     echo "Uploading checksum: $checksum_name"
-    #     curl -SL -u "${{ inputs.jfrog-user }}:${{ inputs.jfrog-pass }}" \
-    #       -T "$checksum_path" \
-    #       "https://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$checksum_name"
-    #
-    # - name: Push artefact (s3)
-    #   if: ${{ steps.detect-values.outputs.scheme == 's3' }}
-    #   shell: bash
-    #   run: |
-    #     set -e
-    #     artefact_path="${{ inputs.artefact }}"
-    #     artefact_name=$(basename "$artefact_path")
-    #     aws s3 cp \
-    #       "$artefact_path" \
-    #       "s3://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artefact_name"
-    #
-    #
-    # - name: Cleanup Authentication Variables
-    #   if: always()
-    #   shell: bash
-    #   run: |
-    #     unset ORAS_USERNAME
-    #     unset ORAS_PASSWORD
-    #     unset AWS_ACCESS_KEY_ID
-    #     unset AWS_SECRET_ACCESS_KEY
-    #     unset AWS_REGION
+
+    - name: Ensure AWS Client's Presence
+      if: ${{ steps.detect-values.outputs.scheme == 's3' }}
+      uses: dragoscirjan/github-tools/.github/actions/awscli-setup@main
+
+    - name: Push artefact (s3)
+      if: ${{ steps.detect-values.outputs.scheme == 's3' }}
+      shell: bash
+      run: |
+        artefact_path="${{ inputs.artefact }}"
+        artefact_name=$(basename "$artefact_path")
+
+        aws s3 cp "$artefact_path" \
+          "s3://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artefact_name"

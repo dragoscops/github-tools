@@ -1,53 +1,30 @@
-name: Test Artefact Actions (OCI)
+name: Test Artefact Actions (S3)
 
 on:
   workflow_dispatch:
   workflow_call:
-  # push:
-  #   branches:
-  #     - main
-  # pull_request:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   test-artefact-actions:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - registry: oci://localhost:5000/artefact
-            username: testuser
-            password: testpassword
-          # - registry: http://localhost:8080
-          #   username: testuser
-          #   password: testpassword
-
     services:
-      htpasswd:
-        image: httpd:2.4-alpine
-        options: >-
-          --health-cmd="htpasswd -Bbn testuser testpassword > /auth/htpasswd"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-        volumes:
-          - /tmp/registry/auth:/auth
-
-      registry:
-        image: registry:2
-        env:
-          REGISTRY_AUTH: htpasswd
-          REGISTRY_AUTH_HTPASSWD_REALM: "Registry Realm"
-          REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
-        options: >-
-          --health-cmd="if ! command -v curl; then apk add curl; fi; curl -u 'testuser:testpassword' http://localhost:5000/v2/ || exit 1"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
+      minio:
+        image: minio/minio:latest
         ports:
-          - 5000:5000
-        volumes:
-          - /tmp/registry/auth:/auth
-
+          - 9000:9000
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        options: >-
+          --health-cmd "curl --fail http://localhost:9000/minio/health/live || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+        command: server /data
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
