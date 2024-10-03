@@ -57,8 +57,7 @@ runs:
           "jfrog"
           "helm"
           "oci"
-
-          # "s3"
+          "s3"
         )
         found=0
         for scheme in "${schemes[@]}"; do
@@ -332,6 +331,18 @@ runs:
       if: ${{ steps.detect-values.outputs.scheme == 's3' }}
       uses: dragoscirjan/github-tools/.github/actions/awscli-setup@main
 
+    - name: Handling AWS Cli's Arguments
+      id: aws-args
+      shell: bash
+      run: |
+        options="${{ inputs.options }}"
+        if [[ -n "$options" ]]; then
+          aws_args=$(echo "$options" | jq -r '.aws_args // null' | jq -c '.')
+          if [[ "$aws_args" != "null" ]]; then
+            echo "aws_args=$aws_args" >> $GITHUB_OUTPUT
+          fi
+        fi
+
     - name: Push artefact (s3)
       if: ${{ steps.detect-values.outputs.scheme == 's3' }}
       shell: bash
@@ -340,4 +351,5 @@ runs:
         artefact_name=$(basename "$artefact_path")
 
         aws s3 cp "$artefact_path" \
-          "s3://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artefact_name"
+          "s3://${{ steps.detect-values.outputs.destination }}/${{ inputs.version }}/$artefact_name" \
+          ${{ steps.aws-args.outputs.aws_args || '' }}

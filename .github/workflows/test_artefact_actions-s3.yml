@@ -44,18 +44,28 @@ jobs:
           aws configure set aws_secret_access_key minioadmin
           aws configure set default.region us-east-1
           aws configure set default.s3.endpoint_url http://localhost:9000
-          # create s3 bucket
+          # create s3 test bucket
           aws s3 mb s3://artefact-bucket-test --endpoint-url http://localhost:9000
           # copy artefact to bucket
           aws s3 cp artefact.txt s3://artefact-bucket-test/artefact.txt --endpoint-url http://localhost:9000
           # list artefacts
           aws s3 ls s3://artefact-bucket-test/ --endpoint-url http://localhost:9000
+          # create s3 bucket
+          aws s3 mb s3://artefact-buckety --endpoint-url http://localhost:9000
 
-      # - name: Test Artefact Push to ${{ matrix.registry }}
-      #   uses: ./.github/actions/artefact-push
-      #   with:
-      #     to: ${{ matrix.registry }}
-      #     artefact: artefact.txt
-      #     version: 0.1.0
-      #     username: ${{ matrix.username }}
-      #     password: ${{ matrix.password }}
+      - name: Test Artefact Push to ${{ matrix.registry }}
+        uses: ./.github/actions/artefact-push
+        with:
+          to: s3://artefact-bucket
+          artefact: artefact.txt
+          version: 0.1.0
+          username: ${{ matrix.username }}
+          password: ${{ matrix.password }}
+          options: |
+            {
+              "aws_credentials": {
+                "aws-access-key-id": "minioadmin",
+                "aws-secret-acess-key": "minioadmin"
+              },
+              "awscli_args": "--endpoint-url http://localhost:9000"
+            }
