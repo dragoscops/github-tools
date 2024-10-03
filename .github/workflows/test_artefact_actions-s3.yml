@@ -44,9 +44,9 @@ jobs:
           echo "MinIO did not become ready in time"
           exit 1
 
-      # - name: Install Oras
-      #   uses: dragoscirjan/github-tools/.github/actions/oras-setup@main
-      #
+      - name: Install AWS Cli
+        uses: dragoscirjan/github-tools/.github/actions/awscli-setup@main
+
       # - name: Create Artefact
       #   run: |
       #     echo "hello world" > artefact.txt
