@@ -67,3 +67,8 @@ jobs:
           AWS_ACCESS_KEY_ID: minioadmin
           AWS_SECRET_ACCESS_KEY: minioadmin
           AWS_DEFAULT_REGION: eu-central-1
+
+      - name: List upload
+        run: |
+          # list artefacts
+          aws s3 ls s3://artefact-bucket/ --endpoint-url http://localhost:9000
