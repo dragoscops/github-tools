@@ -1,0 +1,29 @@
+name: docker-setup
+description: Setup Docker on Github Actions Runners
+inputs:
+  force:
+    description: Force installation or upgrade of Docker even if it is already installed
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Install Docker
+      shell: bash
+      run: |
+        docker_install=0
+        if command -v docker; then docker_install=1; fi
+        if [[ "${{ inputs.force || '' }}" != "" ]]; then docker_install=0; fi
+
+        if [[ $docker_install -eq 1 ]]; then
+          echo "Docker already installed."
+          docker --version
+          exit 0
+        fi
+
+        if command -v apk; then
+          sudo apk add -y docker
+        else
+          curl -sSL https://get.docker.com | sudo bash
+        fi
+
+        docker --version

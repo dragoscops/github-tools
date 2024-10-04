@@ -2,10 +2,10 @@ name: Test Artifact Actions
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
-  # pull_request:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   test-artifact-actions:
@@ -62,7 +62,8 @@ jobs:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-          no-aws-auth: true  # Since MinIO accepts any credentials
+          no-aws-auth: true # Since MinIO accepts any credentials
+
 
       # - name: Verify Artifact in MinIO
       #   run: |

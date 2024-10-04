@@ -111,6 +111,10 @@ runs:
     # https://github.com/docker/build-push-action
     #
 
+    - name: Ensure Docker's Presence
+      if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
+      uses: dragoscirjan/github-tools/.github/actions/docker-setup@main
+
     # TODO: must handle it the same way as aws actions
     - name: Override docker/login-action@v3 arguments
       id: docker-login-action
