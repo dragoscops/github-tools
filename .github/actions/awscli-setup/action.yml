@@ -13,7 +13,8 @@ runs:
         aws_install=0
         if command -v aws; then aws_install=1; fi
         if [[ -n "${{ inputs.force }}" ]]; then aws_install=0; fi
-        if [[ $aws_install == 0 ]]; then
+
+        if [[ $aws_install -eq 0 ]]; then
           echo "AWS CLI already installed."
           aws --version
           exit 0

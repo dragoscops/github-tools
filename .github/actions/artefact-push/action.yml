@@ -327,9 +327,9 @@ runs:
     # Handle S3
     #
 
-    # - name: Ensure AWS Client's Presence
-    #   if: ${{ steps.detect-values.outputs.scheme == 's3' }}
-    #   uses: dragoscirjan/github-tools/.github/actions/awscli-setup@main
+    - name: Ensure AWS Client's Presence
+      if: ${{ steps.detect-values.outputs.scheme == 's3' }}
+      uses: dragoscirjan/github-tools/.github/actions/awscli-setup@main
 
     - name: Handling AWS Cli's Arguments
       id: aws-args
