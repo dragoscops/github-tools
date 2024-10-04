@@ -8,110 +8,18 @@ on:
   pull_request:
 
 jobs:
-  test-artifact-actions:
-    runs-on: ubuntu-latest
-    # env:
-    #   AWS_ACCESS_KEY_ID: minio
-    #   AWS_SECRET_ACCESS_KEY: minio123
-    #   AWS_REGION: us-east-1
-    # services:
-    #   minio:
-    #     image: minio/minio
-    #     ports:
-    #       - 9000:9000
-    #     options: >-
-    #       --health-cmd "curl --silent http://localhost:9000/minio/health/ready || exit 1"
-    #       --health-interval 5s
-    #       --health-timeout 5s
-    #       --health-retries 20
-    #       server /data
-    #   registry:
-    #     image: registry:2
-    #     ports:
-    #       - 5000:5000
-    #     options: >-
-    #       --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:5000/v2/ || exit 1"
-    #       --health-interval 5s
-    #       --health-timeout 5s
-    #       --health-retries 20
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+  test-docker:
+    uses: dragoscirjan/github-tools/.github/workflows/test_artefact_actions-docker.yml@main
+    secrets: inherit
 
-      # - name: Set up MinIO Client (mc)
-      #   run: |
-      #     curl -sO https://dl.min.io/client/mc/release/linux-amd64/mc
-      #     chmod +x mc
-      #     sudo mv mc /usr/local/bin/
+  test-helm:
+    uses: dragoscirjan/github-tools/.github/workflows/test_artefact_actions-helm.yml@main
+    secrets: inherit
 
-      # - name: Configure MinIO
-      #   run: |
-      #     mc alias set myminio http://localhost:9000 ${{ env.AWS_ACCESS_KEY_ID }} ${{ env.AWS_SECRET_ACCESS_KEY }}
-      #     mc mb myminio/test-bucket
+  test-oci:
+    uses: dragoscirjan/github-tools/.github/workflows/test_artefact_actions-oci.yml@main
+    secrets: inherit
 
-      # - name: Build Test Artifact
-      #   run: |
-      #     echo "This is a test artifact" > test-artifact.txt
-
-      - name: Test Artifact Push to S3 (MinIO)
-        uses: ./.github/actions/artefact-push
-        with:
-          to: s3://test-bucket
-          artifact: test-artifact.txt
-          version: v1.0.0
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-          no-aws-auth: true # Since MinIO accepts any credentials
-
-
-      # - name: Verify Artifact in MinIO
-      #   run: |
-      #     mc ls myminio/test-bucket/v1.0.0/
-
-      # - name: Test Artifact Pull from S3 (MinIO)
-      #   uses: ./.github/actions/artefact-pull
-      #   with:
-      #     from: s3://test-bucket
-      #     artifact: test-artifact.txt
-      #     version: v1.0.0
-      #     aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: ${{ env.AWS_REGION }}
-      #     no-aws-auth: true
-
-      # - name: Verify Pulled Artifact
-      #   run: |
-      #     cat test-artifact.txt
-
-      # - name: Build Docker Image
-      #   run: |
-      #     echo -e "FROM alpine\nCMD echo 'Hello World'" > Dockerfile
-      #     docker build -t localhost:5000/test-image:latest .
-
-      # - name: Test Docker Push to Local Registry
-      #   uses: ./.github/actions/artefact-push
-      #   with:
-      #     to: docker://localhost:5000/test-image
-      #     version: latest
-      #     artifact: Dockerfile  # Not used, but required
-      #     jfrog-user: dummy  # Not used for local registry
-      #     jfrog-pass: dummy
-
-      # - name: Verify Docker Image in Registry
-      #   run: |
-      #     curl -X GET http://localhost:5000/v2/_catalog
-
-      # - name: Test Docker Pull from Local Registry
-      #   uses: ./.github/actions/artefact-pull
-      #   with:
-      #     from: docker://localhost:5000/test-image
-      #     version: latest
-      #     artifact: Dockerfile  # Not used, but required
-      #     jfrog-user: dummy  # Not used for local registry
-      #     jfrog-pass: dummy
-
-      # - name: Cleanup
-      #   run: |
-      #     docker rmi localhost:5000/test-image:latest || true
-      #     mc rb --force myminio/test-bucket
+  test-s3:
+    uses: dragoscirjan/github-tools/.github/workflows/test_artefact_actions-s3.yml@main
+    secrets: inherit
