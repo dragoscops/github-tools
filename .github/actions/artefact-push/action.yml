@@ -37,10 +37,6 @@ inputs:
   options:
     description: "Additional options as a JSON object"
     required: false
-# outputs:
-#   push-status:
-#     description: 'Indicates if the artefact was successfully pushed. "success" or "failure".'
-#     value: ${{ steps.push-artefact.outputs.status }}
 runs:
   using: "composite"
   steps:
@@ -100,13 +96,27 @@ runs:
               echo "aws_credentials=$aws_credentials"
             fi
             echo "aws_credentials=$aws_credentials" >> $GITHUB_OUTPUT
+
+            # Dynamically create environment variables for each key in the JSON
+            # until GitHub decides to provide a better .with data pass
+            for key in $(echo "$aws_credentials" | jq -r 'keys[]'); do
+              value=$(echo "$aws_credentials" | jq -r ".${key}")
+              echo "AWS_${key^^}=$value" >> $GITHUB_ENV
+            done
           fi
         fi
 
     - name: Configure AWS Credentials
-      if: ${{ steps.aws-credentials.outputs.aws_credentials }}
       uses: aws-actions/configure-aws-credentials@v4
-      with: ${{ fromJSON(steps.aws-credentials.outputs.aws_credentials) }}
+      with:
+        aws-access-key-id: ${{ env.AWS_ACCESSKEYID }}
+        aws-secret-access-key: ${{ env.AWS_SECRETACCESSKEY }}
+        aws-session-token: ${{ env.AWS_SESSIONTOKEN }}
+        region: ${{ env.AWS_REGION }}
+    # - name: Configure AWS Credentials
+    #   if: ${{ steps.aws-credentials.outputs.aws_credentials }}
+    #   uses: aws-actions/configure-aws-credentials@v4
+    #   with: ${{ fromJSON(steps.aws-credentials.outputs.aws_credentials) }}
 
     #
     # Handling Docker
@@ -117,6 +127,14 @@ runs:
     - name: Ensure Docker's Presence
       if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
       uses: dragoscirjan/github-tools/.github/actions/docker-setup@main
+
+    - name: Login to Docker Registry (inputs)
+      if: ${{ steps.detect-values.outputs.scheme == 'docker' && inputs.username && inputs.password }}
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ steps.detect-values.outputs.destination }}
+        username: ${{ inputs.username }}
+        password: ${{ inputs.password }}
 
     - name: Override docker/login-action@v3 arguments
       id: docker-credentials
@@ -131,22 +149,27 @@ runs:
               echo "docker_credentials=$docker_credentials"
             fi
             echo "docker_credentials=$docker_credentials" >> $GITHUB_OUTPUT
+
+            # Dynamically create environment variables for each key in the JSON
+            # until GitHub decides to provide a better .with data pass
+            for key in $(echo "$docker_credentials" | jq -r 'keys[]'); do
+              value=$(echo "$docker_credentials" | jq -r ".${key}")
+              echo "DOCKER_${key^^}=$value" >> $GITHUB_ENV
+            done
           fi
         fi
 
-    - name: Login to Docker Registry (inputs)
-      if: ${{ steps.detect-values.outputs.scheme == 'docker' && inputs.username && inputs.password }}
+    - name: Login to Docker Registry (options.docker_credentials)
+      if: ${{ steps.detect-values.outputs.scheme == 'docker' && steps.docker-credentials.outputs.docker_credentials }}
       uses: docker/login-action@v3
       with:
-        registry: ${{ steps.detect-values.outputs.destination }}
-        username: ${{ inputs.username }}
-        password: ${{ inputs.password }}
-
-    # TODO: not able to read the credentials ...
-    - name: Login to Docker Registry (options.docker_credentials)
-      if: ${{ steps.detect-values.outputs.scheme == 'docker' && steps.docker-credentials.output.docker_credentials }}
-      uses: docker/login-action@v3
-      with: ${{ fromJSON(steps.docker-credentials.outputs.docker_credentials) }}
+        registry: ${{ env.DOCKER_REGISTRY }}
+        username: ${{ env.DOCKER_USERNAME }}
+        password: ${{ env.DOCKER_PASSWORD }}
+    # - name: Login to Docker Registry (options.docker_credentials)
+    #   if: ${{ steps.detect-values.outputs.scheme == 'docker' && steps.docker-credentials.output.docker_credentials }}
+    #   uses: docker/login-action@v3
+    #   with: ${{ fromJSON(steps.docker-credentials.outputs.docker_credentials) }}
 
     - name: Docker Build Options
       id: docker-build
@@ -158,16 +181,25 @@ runs:
           docker_build=$(echo "$options" | jq '.docker_build  // {}' | jq -c '.')
           docker_build=$(echo "$docker_build" | jq --arg tags "${{ inputs.version }}" '.push = false | .tags = $tags')
           if [[ -n "${{env.DEBUG}}" ]]; then
-            echo "docker_credentials=$docker_credentials"
+            echo "docker_build=$docker_build"
           fi
-          echo "docker_credentials=$docker_credentials" >> $GITHUB_OUTPUT
+          echo "docker_build=$docker_build" >> $GITHUB_OUTPUT
         fi
 
     # TODO: untested so far ...
     - name: Build & Push to Docker Registry
       if: ${{ steps.detect-values.outputs.scheme == 'docker' && inputs.build }}
       uses: docker/build-push-action@v6
-      with: ${{ fromJSON(steps.docker-build.outputs.docker_build) }}
+      with:
+        context: ${{ env.DOCKER_CONTEXT }}
+        file: ${{ env.DOCKER_FILE }}
+        tags: ${{ env.DOCKER_TAGS }}
+        push: ${{ env.DOCKER_PUSH }}
+        platforms: ${{ env.DOCKER_PLATFORMS }}
+    # - name: Build & Push to Docker Registry
+    #   if: ${{ steps.detect-values.outputs.scheme == 'docker' && inputs.build }}
+    #   uses: docker/build-push-action@v6
+    #   with: ${{ fromJSON(steps.docker-build.outputs.docker_build) }}
 
     - name: Push to Docker Registry
       if: ${{ steps.detect-values.outputs.scheme == 'docker' && ! inputs.build }}
