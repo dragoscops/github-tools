@@ -73,6 +73,8 @@ jobs:
           username: ${{ matrix.username }}
           password: ${{ matrix.password }}
           options: ${{ matrix.options || '' }}
+        env:
+          DEBUG: 1
 
       - name: Test Pushed Docker Image
         run: |
