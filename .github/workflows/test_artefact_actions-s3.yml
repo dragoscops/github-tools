@@ -53,9 +53,8 @@ jobs:
           # create s3 bucket
           aws s3 mb s3://artefact-bucket --endpoint-url http://localhost:9000
 
-      - name: Docker Build Options
+      - name: Prepare AWS Credentials
         id: aws-credentials
-        if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
         run: |
           aws_credentials=$(echo '{
               "aws_credentials": {
