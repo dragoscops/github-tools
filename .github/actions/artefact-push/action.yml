@@ -94,7 +94,7 @@ runs:
       run: |
         options='${{ inputs.options != '' && inputs.options  || '{}' }}'
         if [[ -n "$options" ]]; then
-          aws_credentials=$(echo "$options" | jq -r '.aws_credentials  || '{}'' | jq -c '.')
+          aws_credentials=$(echo "$options" | jq -r '.aws_credentials  // {}' | jq -c '.')
           if [[ "$aws_credentials" != "{}" ]]; then
             if [[ -n "${{ env.DEBUG }}" ]]; then
               echo "aws_credentials=$aws_credentials"
@@ -125,7 +125,7 @@ runs:
       run: |
         options='${{ inputs.options != '' && inputs.options  || '{}' }}'
         if [ -n "$options" ]; then
-          docker_credentials=$(echo "$options" | jq '.docker_credentials  || '{}'' | jq -c '.')
+          docker_credentials=$(echo "$options" | jq '.docker_credentials  // {}' | jq -c '.')
           if [[ "$docker_credentials" != "{}"  ]]; then
             if [[ -n "${{env.DEBUG}}" ]]; then
               echo "docker_credentials=$docker_credentials"
@@ -155,7 +155,7 @@ runs:
       run: |
         options='${{ inputs.options != '' && inputs.options  || '{}' }}'
         if [ -n "$options" ]; then
-          docker_build=$(echo "$options" | jq '.docker_build  || '{}'' | jq -c '.')
+          docker_build=$(echo "$options" | jq '.docker_build  // {}' | jq -c '.')
           docker_build=$(echo "$docker_build" | jq --arg tags "${{ inputs.version }}" '.push = false | .tags = $tags')
           if [[ -n "${{env.DEBUG}}" ]]; then
             echo "docker_credentials=$docker_credentials"
