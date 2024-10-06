@@ -53,6 +53,16 @@ jobs:
           # create s3 bucket
           aws s3 mb s3://artefact-bucket --endpoint-url http://localhost:9000
 
+      - name: Prepare AWS Credentials
+        id: aws-credentials
+        run: |
+          aws_credentials=$(echo '{
+              "awscli_args": "--endpoint-url http://localhost:9000"
+            }' | jq -c '.')
+
+          echo "aws_credentials=$aws_credentials"
+          echo "aws_credentials=$aws_credentials" >> $GITHUB_OUTPUT
+
       - name: Test Artefact Push to ${{ matrix.registry }}
         uses: ./.github/actions/artefact-push
         with:
