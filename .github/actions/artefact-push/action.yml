@@ -118,15 +118,12 @@ runs:
       if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
       uses: dragoscirjan/github-tools/.github/actions/docker-setup@main
 
-    # TODO: must handle it the same way as aws actions
     - name: Override docker/login-action@v3 arguments
       id: docker-credentials
       if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
       shell: bash
       run: |
         options='${{ inputs.options }}'
-
-        # Check if options is empty
         if [ -n "$options" ]; then
           docker_credentials=$(echo "$options" | jq '.docker_credentials // {}' | jq -c '.')
           if [[ "$docker_credentials" != "{}"  ]]; then
@@ -145,23 +142,41 @@ runs:
         username: ${{ inputs.username }}
         password: ${{ inputs.password }}
 
+    # TODO: not able to read the credentials ...
     - name: Login to Docker Registry (options.docker_credentials)
       if: ${{ steps.detect-values.outputs.scheme == 'docker' && steps.docker-credentials.output.docker_credentials }}
       uses: docker/login-action@v3
       with: ${{ fromJSON(steps.docker-credentials.outputs.docker_credentials) }}
 
-    # TODO: integrate the build & push action; so far pushing is good enough
-    # - name: Build & Push to Docker Registry
-    #   if: ${{ steps.detect-values.outputs.scheme == 'docker' && inputs.build }}
-    #   shell: bash
-    #   run: |
-    #     helm package ${{ inputs.artefact }} --version ${{ inputs.version }}
+    - name: Docker Build Options
+      id: docker-build
+      if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
+      shell: bash
+      run: |
+        options='${{ inputs.options }}'
+        if [ -n "$options" ]; then
+          docker_build=$(echo "$options" | jq '.docker_build // {}' | jq -c '.')
+          docker_build=$(echo "$docker_build" | jq --arg tags "${{ options.version }}" '.push = false | .tags = $tags')
+          if [[ -n "${{env.DEBUG}}" ]]; then
+            echo "docker_credentials=$docker_credentials"
+          fi
+          echo "docker_credentials=$docker_credentials" >> $GITHUB_OUTPUT
+        fi
+
+    # TODO: untested so far ...
+    - name: Build & Push to Docker Registry
+      if: ${{ steps.detect-values.outputs.scheme == 'docker' && inputs.build }}
+      uses: docker/build-push-action@v6
+      with: ${{ fromJSON(steps.docker-build.outputs.docker_build) }}
 
     - name: Push to Docker Registry
       if: ${{ steps.detect-values.outputs.scheme == 'docker' && ! inputs.build }}
       shell: bash
       run: |
-        docker push ${{ steps.detect-values.outputs.destination }}/${{ inputs.artefact }}:${{ inputs.version }}
+        IFS=',' read -r -a tag_array <<< "${{ inputs.version }}"
+        for tag in "${tag_array[@]}"; do
+          docker push ${{ steps.detect-values.outputs.destination }}/${{ inputs.artefact }}:$tag
+        done
 
     #
     # Handling Helm
