@@ -20,7 +20,7 @@ jobs:
             username: testuser
             password: testpassword
           - registry: localhost:5000
-            options: '{ "docker_login_action": { "with": { "registry": "localhost:5000", "username": "testuser", "password": "testpassword" } } }'
+            options: '{ "docker_credentials": { "registry": "localhost:5000", "username": "testuser", "password": "testpassword" } }'
           # TODO: setup an AWS registry
           # - registry: ...
           #   username: testuser

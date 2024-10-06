@@ -2,10 +2,10 @@ name: Test Artifact Actions
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-  pull_request:
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
 
 jobs:
   test-docker:
