@@ -156,7 +156,7 @@ runs:
         options='${{ inputs.options != '' && inputs.options  || '{}' }}'
         if [ -n "$options" ]; then
           docker_build=$(echo "$options" | jq '.docker_build  || '{}'' | jq -c '.')
-          docker_build=$(echo "$docker_build" | jq --arg tags "${{ options.version }}" '.push = false | .tags = $tags')
+          docker_build=$(echo "$docker_build" | jq --arg tags "${{ inputs.version }}" '.push = false | .tags = $tags')
           if [[ -n "${{env.DEBUG}}" ]]; then
             echo "docker_credentials=$docker_credentials"
           fi
