@@ -180,7 +180,8 @@ runs:
         options='${{ inputs.options != '' && inputs.options  || '{}' }}'
         if [ -n "$options" ]; then
           docker_build=$(echo "$options" | jq '.docker_build  // {}' | jq -c '.')
-          docker_build=$(echo "$docker_build" | jq --arg tags "${{ inputs.version }}" '.push = false | .tags = $tags')
+          docker_build=$(echo "$docker_build" | jq --arg tags "${{ inputs.version }}" '.push = false | .tags = $tags' | jq -c '.')
+
           if [[ -n "${{env.DEBUG}}" ]]; then
             echo "docker_build=$docker_build"
           fi
