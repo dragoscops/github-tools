@@ -191,10 +191,10 @@ runs:
           for key in $(echo "$docker_build" | jq -r 'keys[]'); do
             value=$(echo "$docker_build" | jq -r ".${key}")
             if [[ "$value" != "null" ]]; then
-              if [[ "$key" == "tags" ]]; then
-                # Special case for arrays, flatten into comma-separated string
-                value=$(echo "$docker_build" | jq -r ".${key} | join(\",\")")
-              fi
+              # if [[ "$key" == "tags" ]]; then
+              #   # Special case for arrays, flatten into comma-separated string
+              #   value=$(echo "$docker_build" | jq -r ".${key} | join(\",\")")
+              # fi
               echo "DOCKER_${key^^}=$value" >> $GITHUB_ENV
             fi
           done
