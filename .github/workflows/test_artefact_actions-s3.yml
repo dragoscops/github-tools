@@ -61,9 +61,9 @@ jobs:
           version: 0.1.0
           options: ${{ steps.aws-credentials.outputs.aws_credentials }}
         env:
-          AWS_ACCESSKEYID: minioadmin
+          AWS_ACCESS_KEY_ID: minioadmin
           AWS_REGION: eu-central-1
-          AWS_SECRETACCESSKEY: minioadmin
+          AWS_SECRET_ACCESS_KEY: minioadmin
 
       - name: List upload
         run: |
