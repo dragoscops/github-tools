@@ -68,7 +68,7 @@ jobs:
         uses: ./.github/actions/artefact-push
         with:
           to: docker://${{ matrix.registry }}
-          artifact: alpine
+          artefact: alpine
           version: latest
           username: ${{ matrix.username }}
           password: ${{ matrix.password }}
