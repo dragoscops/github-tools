@@ -127,6 +127,7 @@ runs:
         if [ -n "$options" ]; then
           docker_credentials=$(echo "$options" | jq '.docker_credentials // {}' | jq -c '.')
           if [[ "$docker_credentials" != "{}"  ]]; then
+            echo "docker_credentials=$docker_credentials"
             echo "docker_credentials=$docker_credentials" >> $GITHUB_OUTPUT
           fi
         fi
