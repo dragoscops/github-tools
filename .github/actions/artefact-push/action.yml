@@ -92,7 +92,7 @@ runs:
       id: aws-credentials
       shell: bash
       run: |
-        options='${{ inputs.options }}'
+        options='${{ inputs.options // {} }}'
         if [[ -n "$options" ]]; then
           aws_credentials=$(echo "$options" | jq -r '.aws_credentials // {}' | jq -c '.')
           if [[ "$aws_credentials" != "{}" ]]; then
@@ -123,7 +123,7 @@ runs:
       if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
       shell: bash
       run: |
-        options='${{ inputs.options }}'
+        options='${{ inputs.options // {} }}'
         if [ -n "$options" ]; then
           docker_credentials=$(echo "$options" | jq '.docker_credentials // {}' | jq -c '.')
           if [[ "$docker_credentials" != "{}"  ]]; then
@@ -153,7 +153,7 @@ runs:
       if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
       shell: bash
       run: |
-        options='${{ inputs.options }}'
+        options='${{ inputs.options // {} }}'
         if [ -n "$options" ]; then
           docker_build=$(echo "$options" | jq '.docker_build // {}' | jq -c '.')
           docker_build=$(echo "$docker_build" | jq --arg tags "${{ options.version }}" '.push = false | .tags = $tags')
@@ -270,7 +270,7 @@ runs:
       id: oras-args
       shell: bash
       run: |
-        options='${{ inputs.options }}'
+        options='${{ inputs.options // {} }}'
         if [[ -n "$options" ]]; then
           oras_args=$(echo "$options" | jq -r '.oras_args // null' | jq -c '.')
           if [[ "$oras_args" != "null" ]]; then
@@ -323,7 +323,7 @@ runs:
       id: aws-args
       shell: bash
       run: |
-        options='${{ inputs.options }}'
+        options='${{ inputs.options // {} }}'
         if [[ -n "$options" ]]; then
           aws_args=$(echo "$options" | jq -r '.awscli_args // null')
           if [[ "$aws_args" != "null" ]]; then
