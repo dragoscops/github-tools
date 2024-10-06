@@ -107,6 +107,7 @@ runs:
         fi
 
     - name: Configure AWS Credentials
+      if: ${{ steps.aws-credentials.outputs.aws_credentials }}
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ env.AWS_ACCESSKEYID }}
@@ -184,6 +185,19 @@ runs:
             echo "docker_build=$docker_build"
           fi
           echo "docker_build=$docker_build" >> $GITHUB_OUTPUT
+
+          # Dynamically create environment variables for each key in the JSON
+          # until GitHub decides to provide a better .with data pass
+          for key in $(echo "$docker_build" | jq -r 'keys[]'); do
+            value=$(echo "$docker_build" | jq -r ".${key}")
+            if [[ "$value" != "null" ]]; then
+              if [[ "$key" == "tags" ]]; then
+                # Special case for arrays, flatten into comma-separated string
+                value=$(echo "$docker_build" | jq -r ".${key} | join(\",\")")
+              fi
+              echo "DOCKER_${key^^}=$value" >> $GITHUB_ENV
+            fi
+          done
         fi
 
     # TODO: untested so far ...
