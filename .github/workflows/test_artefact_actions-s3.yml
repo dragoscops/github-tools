@@ -53,21 +53,29 @@ jobs:
           # create s3 bucket
           aws s3 mb s3://artefact-bucket --endpoint-url http://localhost:9000
 
-      - name: Test Artefact Push to ${{ matrix.registry }}
-        uses: ./.github/actions/artefact-push
-        with:
-          to: s3://artefact-bucket
-          artefact: artefact.txt
-          version: 0.1.0
-          options: |
-            {
+      - name: Docker Build Options
+        id: aws-credentials
+        if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
+        run: |
+          aws_credentials=$(echo '{
               "aws_credentials": {
                 "AccessKeyId": "minioadmin",
                 "SecretAccessKey": "minioadmin",
                 "Region": "eu-central-1"
               },
               "awscli_args": "--endpoint-url http://localhost:9000"
-            }
+            }' | jq -c '.')
+
+          echo "aws_credentials=$aws_credentials"
+          echo "aws_credentials=$aws_credentials" >> $GITHUB_OUTPUT
+
+      - name: Test Artefact Push to ${{ matrix.registry }}
+        uses: ./.github/actions/artefact-push
+        with:
+          to: s3://artefact-bucket
+          artefact: artefact.txt
+          version: 0.1.0
+          options: ${{ steps.aws-credentials.outputs.aws_credentials }}
 
       - name: List upload
         run: |
