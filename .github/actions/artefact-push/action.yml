@@ -13,12 +13,6 @@ inputs:
       oci:// => oras push
       s3:// => aws s3 cp
     required: true
-  provider:
-    description: |
-      Service to push artefacts to
-      - aws =>
-      - jfrog =>
-      - minio =>
   artefact:
     description: "Path to the artefact to be pushed."
     required: true
