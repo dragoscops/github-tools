@@ -40,6 +40,13 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Ensure jq
+      run: |
+        if ! command -v jq; then
+          if command -v apk; then sudo apk add -y jq; fi
+          if command -v apt; then sudo apt update && sudo apt install -y jq; fi
+        fi
+
     - name: Detect Values
       id: detect-values
       shell: bash
@@ -66,18 +73,19 @@ runs:
           schemes_string=""
           for s in "${schemes[@]}"; do schemes_string="$schemes_string $s://"; done
           echo "Invalid scheme. Scheme must be one of$schemes_string"
+          exit 1
         fi
 
         # Extract scheme from the lowercased destination
         scheme=$(echo "$destination" | awk -F:// '{print $1}')
         # Pass scheme further
-        echo "scheme=${scheme}"
+        if [[ -n "${{ env.DEBUG }}" ]]; then echo "scheme=${scheme}"; fi
         echo "scheme=${scheme}" >> $GITHUB_OUTPUT
 
         # Adapt ECR destination
         destination=${destination/$scheme:\/\//}
         # Pass destination further
-        echo "destination=${destination}"
+        if [[ -n "${{ env.DEBUG }}" ]]; then echo "destination=${destination}"; fi
         echo "destination=${destination}" >> $GITHUB_OUTPUT
 
     #
@@ -88,7 +96,7 @@ runs:
       id: aws-credentials
       shell: bash
       run: |
-        options='${{ inputs.options != '' && inputs.options  || '{}' }}'
+        options='${{ inputs.options }}'
         if [[ -n "$options" ]]; then
           aws_credentials=$(echo "$options" | jq -r '.aws_credentials  // {}' | jq -c '.')
           if [[ "$aws_credentials" != "{}" ]]; then
@@ -101,7 +109,7 @@ runs:
             # until GitHub decides to provide a better .with data pass
             for key in $(echo "$aws_credentials" | jq -r 'keys[]'); do
               value=$(echo "$aws_credentials" | jq -r ".${key}")
-              echo "AWS_${key^^}=$value" >> $GITHUB_ENV
+              echo "AWS_${key^^}=\"$value\"" >> $GITHUB_ENV
             done
           fi
         fi
@@ -142,7 +150,7 @@ runs:
       if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
       shell: bash
       run: |
-        options='${{ inputs.options != '' && inputs.options  || '{}' }}'
+        options='${{ inputs.options }}'
         if [ -n "$options" ]; then
           docker_credentials=$(echo "$options" | jq '.docker_credentials  // {}' | jq -c '.')
           if [[ "$docker_credentials" != "{}"  ]]; then
@@ -177,7 +185,7 @@ runs:
       if: ${{ steps.detect-values.outputs.scheme == 'docker' }}
       shell: bash
       run: |
-        options='${{ inputs.options != '' && inputs.options  || '{}' }}'
+        options='${{ inputs.options }}'
         if [ -n "$options" ]; then
           docker_build=$(echo "$options" | jq '.docker_build  // {}' | jq -c '.')
           docker_build=$(echo "$docker_build" | jq --arg tags "${{ inputs.version }}" '.push = false | .tags = $tags' | jq -c '.')
@@ -210,7 +218,6 @@ runs:
         file: ${{ env.DOCKER_FILE }}
         tags: ${{ env.DOCKER_TAGS }}
         push: ${{ env.DOCKER_PUSH }}
-        platforms: ${{ env.DOCKER_PLATFORMS }}
     # - name: Build & Push to Docker Registry
     #   if: ${{ steps.detect-values.outputs.scheme == 'docker' && inputs.build }}
     #   uses: docker/build-push-action@v6
@@ -317,7 +324,7 @@ runs:
       id: oras-args
       shell: bash
       run: |
-        options='${{ inputs.options != '' && inputs.options  || '{}' }}'
+        options='${{ inputs.options }}'
         if [[ -n "$options" ]]; then
           oras_args=$(echo "$options" | jq -r '.oras_args // null' | jq -c '.')
           if [[ "$oras_args" != "null" ]]; then
@@ -358,7 +365,7 @@ runs:
       id: aws-args
       shell: bash
       run: |
-        options='${{ inputs.options != '' && inputs.options  || '{}' }}'
+        options='${{ inputs.options }}'
         if [[ -n "$options" ]]; then
           aws_args=$(echo "$options" | jq -r '.awscli_args // null')
           if [[ "$aws_args" != "null" ]]; then
