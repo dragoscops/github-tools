@@ -95,9 +95,7 @@ runs:
         if [[ -n "$options" ]]; then
           aws_credentials=$(echo "$options" | jq -r '.aws_credentials  // {}' | jq -c '.')
           if [[ "$aws_credentials" != "{}" ]]; then
-            if [[ -n "${{ env.DEBUG }}" ]]; then
-              echo "aws_credentials=$aws_credentials"
-            fi
+            if [[ -n "${{ env.DEBUG }}" ]]; then echo "aws_credentials=$aws_credentials"; fi
             echo "aws_credentials=$aws_credentials" >> $GITHUB_OUTPUT
 
             # Dynamically create environment variables for each key in the JSON
@@ -149,9 +147,7 @@ runs:
         if [ -n "$options" ]; then
           docker_credentials=$(echo "$options" | jq '.docker_credentials  // {}' | jq -c '.')
           if [[ "$docker_credentials" != "{}"  ]]; then
-            if [[ -n "${{env.DEBUG}}" ]]; then
-              echo "docker_credentials=$docker_credentials"
-            fi
+            if [[ -n "${{env.DEBUG}}" ]]; then echo "docker_credentials=$docker_credentials"; fi
             echo "docker_credentials=$docker_credentials" >> $GITHUB_OUTPUT
 
             # Dynamically create environment variables for each key in the JSON
@@ -185,9 +181,7 @@ runs:
           docker_build=$(echo "$options" | jq '.docker_build  // {}' | jq -c '.')
           docker_build=$(echo "$docker_build" | jq --arg tags "${{ inputs.version }}" '.push = false | .tags = $tags' | jq -c '.')
 
-          if [[ -n "${{env.DEBUG}}" ]]; then
-            echo "docker_build=$docker_build"
-          fi
+          if [[ -n "${{env.DEBUG}}" ]]; then echo "docker_build=$docker_build"; fi
           echo "docker_build=$docker_build" >> $GITHUB_OUTPUT
 
           # Dynamically create environment variables for each key in the JSON

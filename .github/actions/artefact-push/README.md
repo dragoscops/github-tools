@@ -1,215 +1,316 @@
-# ORAS Push GitHub Action
+# Artefact-Push GitHub Action Documentation
 
-> Push artifacts to JFROG, S3, and ECR repositories seamlessly using the ORAS CLI within your GitHub Actions workflows. The action intelligently detects the target repository type based on the provided URI and handles authentication accordingly.
+## Overview
+
+The `artefact-push` GitHub Action simplifies the process of pushing artefacts to various repositories and storage services. It supports multiple protocols and tools, allowing you to deploy your artefacts to:
+
+- **Docker Registries** (`docker://`)
+- **Helm Repositories** (`helm://`)
+- **JFrog Artifactory** (`jfrog://`)
+- **OCI Registries with ORAS** (`oci://`)
+- **Amazon S3 Buckets** (`s3://`)
+
+This action handles authentication, optional building of artefacts, and provides flexibility through customizable options passed as a JSON object.
+
+---
 
 ## Table of Contents
 
 - [Features](#features)
 - [Inputs](#inputs)
-- [Outputs](#outputs)
 - [Usage](#usage)
-  - [Basic Usage](#basic-usage)
-  - [Pushing to JFROG](#pushing-to-jfrog)
-  - [Pushing to S3](#pushing-to-s3)
-  - [Pushing to ECR](#pushing-to-ecr)
-- [Example Workflows](#example-workflows)
-- [Contributing](#contributing)
-- [License](#license)
+  - [Docker](#docker)
+    - [Docker Hub](#pushing-to-docker-hub)
+    - [GitHub Container Registry (GHCR)](#pushing-to-github-container-registry-ghcr)
+    - [AWS Elastic Container Registry (ECR)](#pushing-to-aws-elastic-container-registry-ecr)
+  - [Helm](#helm)
+    - [OCI Helm Repository](#pushing-to-an-oci-helm-repository)
+    - [HTTP Helm Repository](#pushing-to-an-http-helm-repository)
+  - [ORAS](#oras)
+    - [OCI Registry with ORAS](#pushing-to-an-oci-registry-with-oras)
+    - [AWS ECR with ORAS](#pushing-to-aws-ecr-with-oras)
+  - [JFrog Artifactory](#jfrog-artifactory)
+  - [Amazon S3](#amazon-s3)
+- [Options Input Format](#options-input-format)
+- [Notes](#notes)
+- [Conclusion](#conclusion)
+
+---
 
 ## Features
 
-- **Multi-Registry Support**: Push artifacts to JFROG, S3, or ECR based on the URI scheme.
-- **Automatic Detection**: Detects the target repository type (jfrog://, s3://, ecr://) and configures authentication accordingly.
-- **Secure Authentication**: Handles authentication securely for each repository type.
-- **Flexible Configuration**: Supports both default and custom configurations for each target.
-- **Bash-Only Implementation**: Uses bash scripts for maximum compatibility and simplicity.
+- **Multi-Protocol Support**: Push artefacts to different services seamlessly.
+- **Build Capability**: Optionally build your artefact before pushing.
+- **Customizable Options**: Pass additional parameters through a JSON object for advanced configurations.
+- **Credential Management**: Securely handles authentication for various services.
+- **Dependency Management**: Ensures required tools like `jq`, Docker, Helm, and ORAS are available.
+
+---
 
 ## Inputs
 
-| Input                   | Description                                                                                              | Required | Default |
-| ----------------------- | -------------------------------------------------------------------------------------------------------- | -------- | ------- |
-| `to`                    | **Destination URI** where the artifact will be pushed. Must start with `jfrog://`, `s3://`, or `ecr://`. | Yes      | N/A     |
-| `artifact`              | **Path to the artifact** to be pushed.                                                                   | Yes      | N/A     |
-| `jfrog-url`             | **JFROG Artifactory URL** (required if pushing to JFROG).                                                | No       | N/A     |
-| `jfrog-user`            | **JFROG Username** (required if pushing to JFROG).                                                       | No       | N/A     |
-| `jfrog-pass`            | **JFROG Password or API Key** (required if pushing to JFROG).                                            | No       | N/A     |
-| `aws-access-key-id`     | **AWS Access Key ID** (required for S3 and ECR).                                                         | No       | N/A     |
-| `aws-secret-access-key` | **AWS Secret Access Key** (required for S3 and ECR).                                                     | No       | N/A     |
-| `aws-region`            | **AWS Region** (required for S3 and ECR).                                                                | No       | N/A     |
+### Required Inputs
 
-### Input Details
+- `to` (string): Destination URI where the artefact will be pushed.
 
-- **to**
+  - Supported schemes:
+    - `docker://` &rarr; Docker push
+    - `helm://` &rarr; Helm push
+    - `jfrog://` &rarr; Push to JFrog Artifactory
+    - `oci://` &rarr; ORAS push
+    - `s3://` &rarr; AWS S3 copy
 
-  - **Description**: Specifies the destination URI where the artifact will be pushed. The URI scheme determines the target repository type.
-  - **Type**: `string`
-  - **Example**:
-    - `jfrog://your-jfrog-instance/path/to/repo`
-    - `s3://your-s3-bucket/path/to/folder`
-    - `ecr://your-ecr-repository`
+- `artefact` (string): Path to the artefact to be pushed.
 
-- **artifact**
+- `version` (string): Version of the artefact to be pushed.
 
-  - **Description**: Path to the artifact file that needs to be pushed.
-  - **Type**: `string`
-  - **Example**: `./build/my-artifact.tar.gz`
+### Optional Inputs
 
-- **jfrog-url**
+- `provider` (string): Service provider (e.g., `aws`, `jfrog`, `minio`).
 
-  - **Description**: The URL of your JFrog Artifactory instance.
-  - **Type**: `string`
-  - **Example**: `https://jfrog.example.com/artifactory`
+- `build` (boolean): Whether to also build the artefact before pushing (`true` or `false`).
 
-- **jfrog-user**
+- `username` (string): Username for authenticating with the destination service.
 
-  - **Description**: Username for JFrog Artifactory authentication.
-  - **Type**: `string`
-  - **Example**: `admin`
+- `password` (string): Password or token for authenticating with the destination service.
 
-- **jfrog-pass**
+- `options` (string): Additional options as a JSON object for advanced configurations.
 
-  - **Description**: Password or API key for JFrog Artifactory authentication.
-  - **Type**: `string`
-  - **Example**: `your-api-key`
-
-- **aws-access-key-id**
-
-  - **Description**: AWS Access Key ID for authenticating with S3 or ECR.
-  - **Type**: `string`
-  - **Example**: `AKIA...`
-
-- **aws-secret-access-key**
-
-  - **Description**: AWS Secret Access Key for authenticating with S3 or ECR.
-  - **Type**: `string`
-  - **Example**: `your-secret-access-key`
-
-- **aws-region**
-  - **Description**: AWS region where your S3 bucket or ECR repository is located.
-  - **Type**: `string`
-  - **Example**: `us-east-1`
-
-## Outputs
-
-| Output        | Description                                                                |
-| ------------- | -------------------------------------------------------------------------- |
-| `push-status` | Indicates if the artifact was successfully pushed. `success` or `failure`. |
+---
 
 ## Usage
 
-To integrate the `oras-push` action into your GitHub workflow, use it as a step in your job. Below are various usage scenarios demonstrating how to leverage the action's features.
+### Docker
 
-### Basic Usage
-
-Push an artifact to a specified repository by providing the `to` URI and the path to the artifact.
+#### Pushing to Docker Hub
 
 ```yaml
-jobs:
-  push-artifact:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Setup ORAS
-        uses: path/to/oras-setup@main
-        with:
-          version: "1.2.0"
-
-      - name: Push Artifact
-        uses: path/to/oras-push@main
-        with:
-          to: "jfrog://your-jfrog-instance/path/to/repo"
-          artifact: "./build/my-artifact.tar.gz"
-          jfrog-url: "https://jfrog.example.com/artifactory"
-          jfrog-user: ${{ secrets.JFROG_USERNAME }}
-          jfrog-pass: ${{ secrets.JFROG_PASSWORD }}
+- name: Push Docker Image to Docker Hub
+  uses: your-repo/artefact-push@v1
+  with:
+    to: "docker://docker.io/your-dockerhub-username/your-image-name"
+    artefact: "."
+    version: "1.0.0"
+    build: true
+    username: ${{ secrets.DOCKERHUB_USERNAME }}
+    password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    options: |
+      {
+        "docker_build": {
+          "context": ".",
+          "file": "./Dockerfile"
+        }
+      }
 ```
 
-### Pushing to JFROG
-
-Ensure you provide the necessary JFrog credentials and specify the `jfrog://` URI scheme.
+#### Pushing to GitHub Container Registry (GHCR)
 
 ```yaml
-jobs:
-  push-to-jfrog:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Setup ORAS
-        uses: path/to/oras-setup@main
-        with:
-          version: "1.2.0"
-
-      - name: Push Artifact to JFrog
-        uses: path/to/oras-push@main
-        with:
-          to: "jfrog://jfrog.example.com/artifactory/my-repo"
-          artifact: "./build/my-artifact.tar.gz"
-          jfrog-url: "https://jfrog.example.com/artifactory"
-          jfrog-user: ${{ secrets.JFROG_USERNAME }}
-          jfrog-pass: ${{ secrets.JFROG_PASSWORD }}
+- name: Push Docker Image to GHCR
+  uses: your-repo/artefact-push@v1
+  with:
+    to: "docker://ghcr.io/your-github-username/your-image-name"
+    artefact: "."
+    version: "1.0.0"
+    build: true
+    username: ${{ github.actor }}
+    password: ${{ secrets.GITHUB_TOKEN }}
+    options: |
+      {
+        "docker_build": {
+          "context": ".",
+          "file": "./Dockerfile"
+        }
+      }
 ```
 
-### Pushing to S3
-
-Provide AWS credentials and use the `s3://` URI scheme.
+#### Pushing to AWS Elastic Container Registry (ECR)
 
 ```yaml
-jobs:
-  push-to-s3:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Setup ORAS
-        uses: path/to/oras-setup@main
-        with:
-          version: "1.2.0"
-
-      - name: Push Artifact to S3
-        uses: path/to/oras-push@main
-        with:
-          to: "s3://my-s3-bucket/path/to/folder"
-          artifact: "./build/my-artifact.tar.gz"
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: "us-east-1"
+- name: Push Docker Image to AWS ECR
+  uses: your-repo/artefact-push@v1
+  with:
+    to: "docker://your-aws-account-id.dkr.ecr.region.amazonaws.com/your-image-name"
+    artefact: "."
+    version: "1.0.0"
+    build: true
+    options: |
+      {
+        "aws_credentials": {
+          "accesskeyid": "${{ secrets.AWS_ACCESS_KEY_ID }}",
+          "secretaccesskey": "${{ secrets.AWS_SECRET_ACCESS_KEY }}",
+          "region": "your-aws-region"
+        },
+        "docker_build": {
+          "context": ".",
+          "file": "./Dockerfile"
+        }
+      }
 ```
 
-### Pushing to ECR
+---
 
-Authenticate with AWS and use the `ecr://` URI scheme.
+### Helm
+
+#### Pushing to an OCI Helm Repository
 
 ```yaml
-jobs:
-  push-to-ecr:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Setup ORAS
-        uses: path/to/oras-setup@main
-        with:
-          version: "1.2.0"
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: "us-east-1"
-
-      - name: Push Artifact to ECR
-        uses: path/to/oras-push@main
-        with:
-          to: "ecr://my-ecr-repo"
-          artifact: "./build/my-artifact.tar.gz"
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: "us-east-1"
+- name: Push Helm Chart to OCI Registry
+  uses: your-repo/artefact-push@v1
+  with:
+    to: "helm://oci://your-oci-registry.com/helm-charts"
+    artefact: "./chart-directory"
+    version: "1.0.0"
+    build: true
+    username: ${{ secrets.HELM_REGISTRY_USERNAME }}
+    password: ${{ secrets.HELM_REGISTRY_PASSWORD }}
 ```
+
+#### Pushing to an HTTP Helm Repository
+
+```yaml
+- name: Push Helm Chart to HTTP Repository
+  uses: your-repo/artefact-push@v1
+  with:
+    to: "helm://https://your-helm-repo.com/charts"
+    artefact: "./chart-directory"
+    version: "1.0.0"
+    build: true
+    username: ${{ secrets.HELM_REPO_USERNAME }}
+    password: ${{ secrets.HELM_REPO_PASSWORD }}
+    options: |
+      {
+        "helm_args": "--force"
+      }
+```
+
+**Note**: Pushing to an HTTP Helm repository may require additional plugins like `chartmuseum/helm-push`.
+
+---
+
+### ORAS
+
+#### Pushing to an OCI Registry with ORAS
+
+```yaml
+- name: Push Artefact to OCI Registry with ORAS
+  uses: your-repo/artefact-push@v1
+  with:
+    to: "oci://your-oci-registry.com/your-repository"
+    artefact: "./path/to/your/artefact.zip"
+    version: "1.0.0"
+    username: ${{ secrets.ORAS_REGISTRY_USERNAME }}
+    password: ${{ secrets.ORAS_REGISTRY_PASSWORD }}
+    options: |
+      {
+        "oras_args": "--verbose"
+      }
+```
+
+#### Pushing to AWS ECR with ORAS
+
+```yaml
+- name: Push Artefact to AWS ECR with ORAS
+  uses: your-repo/artefact-push@v1
+  with:
+    to: "oci://your-aws-account-id.dkr.ecr.region.amazonaws.com/your-repository"
+    artefact: "./path/to/your/artefact.zip"
+    version: "1.0.0"
+    options: |
+      {
+        "aws_credentials": {
+          "accesskeyid": "${{ secrets.AWS_ACCESS_KEY_ID }}",
+          "secretaccesskey": "${{ secrets.AWS_SECRET_ACCESS_KEY }}",
+          "region": "your-aws-region"
+        },
+        "oras_args": "--verbose"
+      }
+```
+
+---
+
+### JFrog Artifactory
+
+```yaml
+- name: Push Artefact to JFrog Artifactory
+  uses: your-repo/artefact-push@v1
+  with:
+    to: "jfrog://your-artifactory.com/generic-local"
+    artefact: "./path/to/your/artefact.zip"
+    version: "1.0.0"
+    username: ${{ secrets.JFROG_USERNAME }}
+    password: ${{ secrets.JFROG_PASSWORD }}
+```
+
+---
+
+### Amazon S3
+
+```yaml
+- name: Upload Artefact to Amazon S3
+  uses: your-repo/artefact-push@v1
+  with:
+    to: "s3://your-bucket-name/path"
+    artefact: "./path/to/your/artefact.zip"
+    version: "1.0.0"
+    options: |
+      {
+        "aws_credentials": {
+          "accesskeyid": "${{ secrets.AWS_ACCESS_KEY_ID }}",
+          "secretaccesskey": "${{ secrets.AWS_SECRET_ACCESS_KEY }}",
+          "region": "your-aws-region"
+        },
+        "awscli_args": "--acl public-read"
+      }
+```
+
+---
+
+## Options Input Format
+
+The `options` input allows you to pass additional parameters to customize the action's behavior. It should be a JSON-formatted string. Below is an example of the possible keys and values you can include:
+
+```json
+{
+  "aws_credentials": {
+    "accesskeyid": "your-access-key-id",
+    "secretaccesskey": "your-secret-access-key",
+    "region": "us-west-2",
+    "sessiontoken": "your-session-token"
+  },
+  "docker_build": {
+    "context": ".",
+    "file": "./Dockerfile",
+    "push": false,
+    "tags": "latest"
+  },
+  "docker_credentials": {
+    "registry": "your-registry.com",
+    "username": "your-username",
+    "password": "your-password"
+  },
+  "oras_args": "--verbose",
+  "awscli_args": "--acl public-read",
+  "helm_args": "--force"
+}
+```
+
+---
+
+## Notes
+
+- **Dependencies**: The action ensures that necessary tools like `jq`, Docker, Helm, and ORAS are installed before they're used.
+- **Authentication**: Credentials should be stored securely using GitHub Secrets and passed to the action via inputs.
+- **Debugging**: Set the `DEBUG` environment variable to output additional debugging information.
+- **Error Handling**: The action will exit with an error message if an invalid scheme is provided or if required credentials are missing.
+- **Commented Code**: The action contains commented-out code sections for future development or alternative approaches. These are intentionally left in the code for reference.
+
+---
+
+## Conclusion
+
+The `artefact-push` GitHub Action is a versatile tool that simplifies the deployment of artefacts to various services. By abstracting the complexities of different protocols and authentication methods, it allows developers to focus on building and deploying their applications more efficiently.
+
+**Important**: Always ensure that your credentials and sensitive data are handled securely and are not exposed in logs or code repositories.
+
+For any issues or contributions, please refer to the repository's issue tracker or contribute through pull requests.
