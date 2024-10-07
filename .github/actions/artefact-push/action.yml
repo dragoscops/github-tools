@@ -41,6 +41,7 @@ runs:
   using: "composite"
   steps:
     - name: Ensure jq
+      shell: bash
       run: |
         if ! command -v jq; then
           if command -v apk; then sudo apk add -y jq; fi
