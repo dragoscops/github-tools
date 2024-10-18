@@ -1,74 +1,81 @@
 #! /bin/bash
 
 ###############################################################################
-# Example to run:
-# bash ./install-self-hosted-runner.sh \
-#      --github-repository "https://github.com/your/repo" \
-#      --github-token "Your_GithubToken" \
-#      --runner-folder-pattern "action-runner-{id}" \
-#      --runner-name-pattern "action-runner-{id}" \
-#      --runner-labels-pattern "action-runner" \
-#      --runner-count 2
+# Install Self-Hosted GitHub Runner Script
+#
+# This script installs self-hosted GitHub runners based on specified patterns
+# and configurations. It downloads the runner, configures it, and starts the
+# runner service.
+#
+# Usage:
+#   DEBUG=1 \
+#   bash ./install-self-hosted-runner.sh \
+#        --github-repository "https://github.com/your/repo" \
+#        --github-token "Your_GithubToken" \
+#        --runner-folder-pattern "action-runner-{id}" \
+#        --runner-name-pattern "action-runner-{id}" \
+#        --runner-labels-pattern "action-runner" \
+#        --runner-count 2 \
+#        --additional-labels "label1 label2"
+#
+# Options:
+#   --github-repository URL            GitHub repository URL (required)
+#   --github-token TOKEN               GitHub token (required)
+#   --runner-folder-pattern PATTERN    Runner folder pattern (default: 'action-runner-{id}')
+#   --runner-name-pattern PATTERN      Runner name pattern (default: 'action-runner-{id}')
+#   --runner-labels-pattern PATTERN    Runner labels pattern (default: 'action-runner')
+#   --runner-count NUMBER              Number of runners to install (default: 1)
+#   --additional-labels LABELS         Additional labels (space-separated)
+#   --help, -h                         Show this help message and exit
+#
+# Environment Variables:
+#   DEBUG                              Set to 1 to enable debug mode
+#
+# Example:
+#   DEBUG=1 bash ./install-self-hosted-runner.sh \
+#        --github-repository "https://github.com/your/repo" \
+#        --github-token "Your_GithubToken" \
+#        --runner-folder-pattern "action-runner-{id}" \
+#        --runner-name-pattern "action-runner-{id}" \
+#        --runner-labels-pattern "action-runner" \
+#        --runner-count 2 \
+#        --additional-labels "label1 label2"
 ###############################################################################
 
 if [ ! -z $DEBUG ]; then
   set -ex
 fi
 
-GITHUB_REPOSITORY=invalid
-GITHUB_TOKEN=invalid
-RUNNER_FOLDER_PATTERN="action-runner-{id}"
-RUNNER_NAME_PATTERN="action-runner-{id}"
-RUNNER_LABELS_PATTERN="action-runner"
-RUNNER_COUNT=2
+function show_help() {
+  local exitCode=${1:-0}
 
-while [[ "$#" -gt 0 ]]; do
-  case $1 in
-  --github-repository)
-    GITHUB_REPOSITORY="$2"
-    shift
-    ;;
-  --github-token)
-    GITHUB_TOKEN="$2"
-    shift
-    ;;
-  --runner-folder-pattern)
-    RUNNER_FOLDER_PATTERN="$2"
-    shift
-    ;;
-  --runner-name-pattern)
-    RUNNER_NAME_PATTERN="$2"
-    shift
-    ;;
-  --runner-labels-pattern)
-    RUNNER_LABELS_PATTERN="$2"
-    shift
-    ;;
-  --runner-count)
-    RUNNER_COUNT="$2"
-    shift
-    ;;
-  --additional-labels)
-    ADDITIONAL_LABELS="$2"
-    shift
-    ;;
-  *)
-    echo "Unknown parameter passed: $1"
-    exit 1
-    ;;
-  esac
-  shift
-done
+  cat >&2 <<EOF
+Usage: bash \$0 [options]
 
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+Options:
+  --github-repository URL            GitHub repository URL (required)
+  --github-token TOKEN               GitHub token (required)
+  --runner-folder-pattern PATTERN    Runner folder pattern (default: 'action-runner-{id}')
+  --runner-name-pattern PATTERN      Runner name pattern (default: 'action-runner-{id}')
+  --runner-labels-pattern PATTERN    Runner labels pattern (default: 'action-runner')
+  --runner-count NUMBER              Number of runners to install (default: 1)
+  --additional-labels LABELS         Additional labels (space-separated)
+  --help, -h                         Show this help message and exit
 
-HOSTNAME_LABEL=$(hostname | awk -F'.' '{ print $1 }')
-ADDITIONAL_LABELS="$ADDITIONAL_LABELS $HOSTNAME_LABEL"
+Environment Variables:
+  DEBUG                              Set to 1 to enable debug mode
 
-if ! [[ "$RUNNER_COUNT" =~ ^[0-9]+$ ]]; then
-  echo "Error: --runner-count must be a positive integer."
-  exit 1
-fi
+Example:
+  DEBUG=1 bash \$0 --github-repository "https://github.com/your/repo" \\
+       --github-token "Your_GithubToken" \\
+       --runner-folder-pattern "action-runner-{id}" \\
+       --runner-name-pattern "action-runner-{id}" \\
+       --runner-labels-pattern "action-runner" \\
+       --runner-count 2 \\
+       --additional-labels "label1 label2"
+EOF
+  exit $exitCode
+}
 
 function install_deps_linux() {
   source /etc/*-release >/dev/null ||
@@ -99,8 +106,8 @@ function install_deps_darwin() {
 }
 
 function download_runner_linux() {
-  local runnerUrl=${RUNNER_URL:-https://github.com/actions/runner/releases/download/v2.314.1/actions-runner-linux-x64-2.314.1.tar.gz}
-  local runnerSha=${RUNNER_SHA:-6c726a118bbe02cd32e222f890e1e476567bf299353a96886ba75b423c1137b5}
+  local runnerUrl=${RUNNER_DOWNLOAD_URL:-https://github.com/actions/runner/releases/download/v2.314.1/actions-runner-linux-x64-2.314.1.tar.gz}
+  local runnerSha=${RUNNER_DOWNLOAD_SHA:-6c726a118bbe02cd32e222f890e1e476567bf299353a96886ba75b423c1137b5}
   local runnerTgz="/tmp/action-runner.tar.gz"
 
   curl -o $runnerTgz -L "$runnerUrl"
@@ -144,15 +151,85 @@ function install_runner() {
   done
 }
 
+################################################################
+
+GITHUB_REPOSITORY=invalid
+GITHUB_TOKEN=invalid
+RUNNER_FOLDER_PATTERN="action-runner-{id}"
+RUNNER_NAME_PATTERN="action-runner-{id}"
+RUNNER_LABELS_PATTERN="action-runner"
+RUNNER_COUNT=2
+RUNNER_DOWNLOAD_URL=""
+RUNNER_DOWNLLOAD_SHA=""
+
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+  --github-repository)
+    GITHUB_REPOSITORY="$2"
+    shift
+    ;;
+  --github-token)
+    GITHUB_TOKEN="$2"
+    shift
+    ;;
+  --runner-folder-pattern)
+    RUNNER_FOLDER_PATTERN="$2"
+    shift
+    ;;
+  --runner-name-pattern)
+    RUNNER_NAME_PATTERN="$2"
+    shift
+    ;;
+  --runner-labels-pattern)
+    RUNNER_LABELS_PATTERN="$2"
+    shift
+    ;;
+  --runner-count)
+    RUNNER_COUNT="$2"
+    shift
+    ;;
+  --additional-labels)
+    ADDITIONAL_LABELS="$2"
+    shift
+    ;;
+  --runner-download-url)
+    RUNNER_DOWNLOAD_URL="$2"
+    shift
+    ;;
+  --runner-download-sha)
+    RUNNER_DOWNLOAD_SHA="$2"
+    shift
+    ;;
+  --help | -h)
+    show_help
+    ;;
+  *)
+    echo "Unknown parameter passed: $1"
+    show_help 1
+    ;;
+  esac
+  shift
+done
+
+if ! [[ "$RUNNER_COUNT" =~ ^[0-9]+$ ]]; then
+  echo "Error: --runner-count must be a positive integer."
+  show_help 2
+fi
+
 if [[ "$GITHUB_REPOSITORY" == "invalid" ]]; then
   echo "Invalid Github Repository. Not mentioned."
-  exit 1
+  show_help 3
 fi
 
 if [[ "$GITHUB_TOKEN" == "invalid" ]]; then
   echo "Invalid Github Token. Not mentioned."
-  exit 2
+  show_help 4
 fi
+
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+HOSTNAME_LABEL=$(hostname | awk -F'.' '{ print $1 }')
+ADDITIONAL_LABELS="$ADDITIONAL_LABELS $HOSTNAME_LABEL"
 
 install_deps=install_deps_$OS
 $install_deps

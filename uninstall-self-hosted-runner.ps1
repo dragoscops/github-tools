@@ -1,19 +1,61 @@
 ###############################################################################
-# TODO: script hasn't been tested
-# Example to run:
-# .\uninstall-self-hosted-runner.ps1 `
-#      -GithubToken "your_GithubToken" `
-#      -RunnerFolderPattern "action-runner-*"s
+# Uninstall Self-Hosted GitHub Runner Script
+#
+# This script uninstalls self-hosted GitHub runners based on a specified folder
+# pattern. It stops and removes the runner services and deletes the runner folders.
+#
+# Usage:
+#   $env:DEBUG=1
+#   .\uninstall-self-hosted-runner.ps1 `
+#        -GithubToken "Your_GithubToken" `
+#        -RunnerFolderPattern "actions-runner-*"
+#
+# Options:
+#   -GithubToken TOKEN            GitHub token (required)
+#   -RunnerFolderPattern PATTERN  Runner folder pattern (default: 'actions-runner-*')
+#   -Help, -H                     Show this help message and exit
+#
+# Environment Variables:
+#   DEBUG                         Set to 1 to enable debug mode
+#
+# Example:
+#   $env:DEBUG=1; .\uninstall-self-hosted-runner.ps1 -GithubToken "Your_GithubToken" -RunnerFolderPattern "actions-runner-*"
 ###############################################################################
 
 param(
   [string]$GithubToken = "invalid",
-  [string]$RunnerFolderPattern = "actions-runner-*"
+  [string]$RunnerFolderPattern = "actions-runner-*",
+  [switch]$Help = $false,
+  [switch]$H = $false
 )
 
 if ($env:DEBUG) {
     $VerbosePreference = "Continue"
     $DebugPreference = "Continue"
+}
+
+function Show-Help {
+  param (
+    [int]$ExitCode = 0
+  )
+  $helpMessage = @"
+Usage: .\uninstall-self-hosted-runner.ps1 [options]
+
+Options:
+  -GithubToken TOKEN            GitHub token (required)
+  -RunnerFolderPattern PATTERN  Runner folder pattern (default: 'actions-runner-*')
+  -Help, -H                     Show this help message and exit
+
+Environment Variables:
+  DEBUG                         Set to 1 to enable debug mode
+
+Example:
+  $env:DEBUG=1; .\uninstall-self-hosted-runner.ps1 -GithubToken "Your_GithubToken" -RunnerFolderPattern "actions-runner-*"
+
+"@
+  # Write the help message to stderr
+  [Console]::Error.WriteLine($helpMessage)
+  exit $exitCode
 }
 
 function Uninstall-Runner {
@@ -40,9 +82,13 @@ function Uninstall-Runner {
     }
 }
 
+if ($Help -or $H) {
+    Show-Help
+}
+
 if ($GithubToken -eq "invalid") {
     Write-Host "Invalid Github Token. Not mentioned."
-    exit 2
+    Show-Help -ExitCode 1
 }
 
 Uninstall-Runner

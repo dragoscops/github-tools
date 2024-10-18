@@ -1,11 +1,43 @@
-###############################################################################
-# Example to run:
-# .\install-runner.ps1 `
-#      -GithubRepository "https://github.com/your/repo" `
-#      -GithubToken "your_GithubToken" `
-#      -RunnerFolderPath "github-runner-{id}-local" `
-#      -RunnerNamePattern "github-runner-local-{id}" `
-#      -RunnerLabelsPattern "github-runner-local"
+i###############################################################################
+# Install Self-Hosted GitHub Runner Script
+#
+# This script installs self-hosted GitHub runners based on specified patterns
+# and configurations. It downloads the runner, configures it, and starts the
+# runner service.
+#
+# Usage:
+#   $env:DEBUG=1
+#   .\install-runner.ps1 `
+#        -GithubRepository "https://github.com/your/repo" `
+#        -GithubToken "Your_GithubToken" `
+#        -RunnerFolderPath "action-runner-{id}" `
+#        -RunnerNamePattern "action-runner-{id}" `
+#        -RunnerLabelsPattern "action-runner" `
+#        -RunnerCount 2 `
+#        -RunnerAdditionalLabels "label1 label2"
+#
+# Options:
+#   -GithubRepository URL            GitHub repository URL (required)
+#   -GithubToken TOKEN               GitHub token (required)
+#   -RunnerFolderPath PATH           Runner folder path pattern (default: 'action-runner-{id}')
+#   -RunnerNamePattern PATTERN       Runner name pattern (default: 'action-runner-{id}')
+#   -RunnerLabelsPattern PATTERN     Runner labels pattern (default: 'action-runner')
+#   -RunnerCount NUMBER              Number of runners to install (default: 2)
+#   -RunnerAdditionalLabels LABELS   Additional labels (space-separated)
+#   -Help, -H                        Show this help message and exit
+#
+# Environment Variables:
+#   DEBUG                            Set to 1 to enable debug mode
+#
+# Example:
+#   $env:DEBUG=1; .\install-runner.ps1 `
+#        -GithubRepository "https://github.com/your/repo" `
+#        -GithubToken "Your_GithubToken" `
+#        -RunnerFolderPath "action-runner-{id}" `
+#        -RunnerNamePattern "action-runner-{id}" `
+#        -RunnerLabelsPattern "action-runner" `
+#        -RunnerCount 2 `
+#        -RunnerAdditionalLabels "label1 label2"
 ###############################################################################
 
 param(
@@ -17,7 +49,9 @@ param(
     [string]$RunnerLabelsPattern = "action-runner",
     [string]$RunnerAdditionalLabels = "",
     [string]$RunnerDownloadUrl = "https://github.com/actions/runner/releases/download/v2.317.0/actions-runner-win-x64-2.317.0.zip",
-    [string]$RunnerDownloadSha = "a74dcd1612476eaf4b11c15b3db5a43a4f459c1d3c1807f8148aeb9530d69826"
+    [string]$RunnerDownloadSha = "a74dcd1612476eaf4b11c15b3db5a43a4f459c1d3c1807f8148aeb9530d69826",
+    [swtich]$Help = $false,
+    [switch]$H = $false
 )
 
 $RunnerZipPath = "C:\github-actions-runner-template.zip"
@@ -32,6 +66,44 @@ $OS = (Get-CimInstance -ClassName Win32_OperatingSystem).Caption
 
 $HostnameLabel = $env:COMPUTERNAME
 $RunnerAdditionalLabels="$RunnerAdditionalLabels $HostnameLabel"
+
+################################################################
+
+function Show-Help {
+  param {
+    [int] $ExitCode = 0
+  }
+
+  $helpMessage = @"
+Usage: .\install-runner.ps1 [options]
+
+Options:
+  -GithubRepository URL            GitHub repository URL (required)
+  -GithubToken TOKEN               GitHub token (required)
+  -RunnerFolderPath PATH           Runner folder path pattern (default: 'action-runner-{id}')
+  -RunnerNamePattern PATTERN       Runner name pattern (default: 'action-runner-{id}')
+  -RunnerLabelsPattern PATTERN     Runner labels pattern (default: 'action-runner')
+  -RunnerCount NUMBER              Number of runners to install (default: 2)
+  -RunnerAdditionalLabels LABELS   Additional labels (space-separated)
+  -Help, -H                        Show this help message and exit
+
+Environment Variables:
+  DEBUG                            Set to 1 to enable debug mode
+
+Example:
+  $env:DEBUG=1; .\install-runner.ps1 `
+     -GithubRepository "https://github.com/your/repo" `
+     -GithubToken "Your_GithubToken" `
+     -RunnerFolderPath "action-runner-{id}" `
+     -RunnerNamePattern "action-runner-{id}" `
+     -RunnerLabelsPattern "action-runner" `
+     -RunnerCount 2 `
+     -RunnerAdditionalLabels "label1 label2"
+"@
+  # Write the help message to stderr
+  [Console]::Error.WriteLine($helpMessage)
+  exit $ExitCode
+}
 
 function Install-Dependencies-Windows {
     Write-Host "Installing dependencies on Windows..."
@@ -70,6 +142,7 @@ function Install-Runner-Windows {
         $runnerFolder = $RunnerFolderPath -replace "{id}", $i
         $runnerName = $RunnerNamePattern -replace "{id}", $i
         $runnerLabels = $RunnerLabelsPattern -replace "{id}", $i
+        $runnerLabels = "$runnerLabels $RunnerAdditionalLabels"
 
         # $runnerFolder = "${env:HOMEDRIVE}${env:HOMEPATH}\${runnerFolder}"
         $runnerFolder = "C:\actions-runner\${runnerFolder}"
@@ -96,14 +169,20 @@ function Install-Runner-Windows {
     }
 }
 
+################################################################
+
+if ($Help -or $H) {
+    Show-Help
+}
+
 if ($GithubRepository -eq "invalid") {
     Write-Host "Invalid Github Repository. Not mentioned."
-    exit 1
+    Show-Help -ExitCode 1
 }
 
 if ($GithubToken -eq "invalid") {
     Write-Host "Invalid Github Token. Not mentioned."
-    exit 2
+    Show-Help -ExitCode 2
 }
 
 Install-Dependencies-Windows
@@ -111,5 +190,4 @@ Remove-Runner-Windows
 Download-Runner-Windows
 Install-Runner-Windows
 Remove-Runner-Windows
-
 Write-Host "Runner installation and configuration complete."
