@@ -134,7 +134,7 @@ function install_runner() {
     local runnerName=$(echo $runnerNamePattern | sed "s/{id}/$i/")
     local runnerLabels=$(echo $runnerLabelsPattern | sed "s/{id}/$i/")
 
-    runnerLabels="$runnerLabels $ADDITIONAL_LABELS"
+    runnerLabels="$runnerLabels,$ADDITIONAL_LABELS"
     rm -rf $HOME/$runnerFolder
 
     mkdir -p $HOME/$runnerFolder
@@ -229,7 +229,7 @@ fi
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
 HOSTNAME_LABEL=$(hostname | awk -F'.' '{ print $1 }')
-ADDITIONAL_LABELS="$ADDITIONAL_LABELS $HOSTNAME_LABEL"
+ADDITIONAL_LABELS="$ADDITIONAL_LABELS,$HOSTNAME_LABEL"
 
 install_deps=install_deps_$OS
 $install_deps
