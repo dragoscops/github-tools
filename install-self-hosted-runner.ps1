@@ -70,9 +70,9 @@ $RunnerAdditionalLabels="$RunnerAdditionalLabels $HostnameLabel"
 ################################################################
 
 function Show-Help {
-  param {
+  param(
     [int] $ExitCode = 0
-  }
+  )
 
   $helpMessage = @"
 Usage: .\install-runner.ps1 [options]
