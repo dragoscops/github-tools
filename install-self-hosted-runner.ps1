@@ -98,7 +98,7 @@ Example:
      -RunnerNamePattern "action-runner-{id}" `
      -RunnerLabelsPattern "action-runner" `
      -RunnerCount 2 `
-     -RunnerAdditionalLabels "label1 label2"
+     -RunnerAdditionalLabels "label1,label2"
 "@
   # Write the help message to stderr
   [Console]::Error.WriteLine($helpMessage)
@@ -142,7 +142,10 @@ function Install-Runner-Windows {
         $runnerFolder = $RunnerFolderPath -replace "{id}", $i
         $runnerName = $RunnerNamePattern -replace "{id}", $i
         $runnerLabels = $RunnerLabelsPattern -replace "{id}", $i
+
         $runnerLabels = "$runnerLabels $RunnerAdditionalLabels"
+        $runnerLabels = "$RunnerLabelsPattern $RunnerAdditionalLabels" -replace '\s+', ' ' -replace ' ', ','
+        $runnerLabels = $runnerLabels.Trim(',')
 
         # $runnerFolder = "${env:HOMEDRIVE}${env:HOMEPATH}\${runnerFolder}"
         $runnerFolder = "C:\actions-runner\${runnerFolder}"
