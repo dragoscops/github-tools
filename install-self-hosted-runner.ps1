@@ -50,7 +50,7 @@ param(
     [string]$RunnerAdditionalLabels = "",
     [string]$RunnerDownloadUrl = "https://github.com/actions/runner/releases/download/v2.317.0/actions-runner-win-x64-2.317.0.zip",
     [string]$RunnerDownloadSha = "a74dcd1612476eaf4b11c15b3db5a43a4f459c1d3c1807f8148aeb9530d69826",
-    [swtich]$Help = $false,
+    [switch]$Help = $false,
     [switch]$H = $false
 )
 
