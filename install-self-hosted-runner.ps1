@@ -1,4 +1,4 @@
-i###############################################################################
+###############################################################################
 # Install Self-Hosted GitHub Runner Script
 #
 # This script installs self-hosted GitHub runners based on specified patterns
