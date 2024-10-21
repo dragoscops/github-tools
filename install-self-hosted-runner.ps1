@@ -119,6 +119,8 @@ function Install-Dependencies-Windows {
 
 function Download-Runner-Windows {
     Write-Host "Downloading runner template..."
+
+    $ProgressPreference = 'SilentlyContinue'
     Invoke-WebRequest -Uri $RunnerDownloadUrl -OutFile $RunnerZipPath
 
     $fileHash = (Get-FileHash -Path $RunnerZipPath -Algorithm SHA256).Hash.ToUpper()
