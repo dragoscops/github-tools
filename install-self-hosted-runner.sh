@@ -78,8 +78,12 @@ EOF
 }
 
 function install_deps_linux() {
-  source /etc/*-release >/dev/null ||
+  while read f; do
+    source $f || true
+    [ -n "$ID" ] && break
     ID=$(cat /etc/*-release | egrep "^ID=" | awk -F '"' '{ print $2 }')
+    [ -n "$ID" ] && break
+  done < <(find /etc -mindepth 1 -maxdepth 1 -iname "*-release")
 
   case "$ID" in
   amzn)
@@ -106,8 +110,8 @@ function install_deps_darwin() {
 }
 
 function download_runner_linux() {
-  local runnerUrl=${RUNNER_DOWNLOAD_URL:-https://github.com/actions/runner/releases/download/v2.314.1/actions-runner-linux-x64-2.314.1.tar.gz}
-  local runnerSha=${RUNNER_DOWNLOAD_SHA:-6c726a118bbe02cd32e222f890e1e476567bf299353a96886ba75b423c1137b5}
+  local runnerUrl=${RUNNER_DOWNLOAD_URL:-https://github.com/actions/runner/releases/download/v2.328.0/actions-runner-linux-x64-2.328.0.tar.gz}
+  local runnerSha=${RUNNER_DOWNLOAD_SHA:-01066fad3a2893e63e6ca880ae3a1fad5bf9329d60e77ee15f2b97c148c3cd4e}
   local runnerTgz="/tmp/action-runner.tar.gz"
 
   curl -o $runnerTgz -L "$runnerUrl"
