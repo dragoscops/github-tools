@@ -78,8 +78,12 @@ EOF
 }
 
 function install_deps_linux() {
-  source /etc/*-release >/dev/null ||
+  while read f; do
+    source $f
+    [ -n "$ID" ] && break
     ID=$(cat /etc/*-release | egrep "^ID=" | awk -F '"' '{ print $2 }')
+    [ -n "$ID" ] && break
+  done < <(find /etc -mindepth 1 -maxdepth 1 -iname "*-release")
 
   case "$ID" in
   amzn)
